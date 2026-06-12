@@ -349,7 +349,7 @@ export default function App() {
   }
 
   return (
-    <div className="h-[100dvh] w-screen bg-[#070b13] text-slate-100 flex flex-col font-sans overflow-hidden">
+    <div className="relative h-[100dvh] w-full bg-[#070b13] text-slate-100 flex flex-col font-sans overflow-hidden">
       <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-emerald-500/5 rounded-full blur-[120px] pointer-events-none pulse-glow-emerald"></div>
       <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-teal-500/5 rounded-full blur-[100px] pointer-events-none"></div>
 

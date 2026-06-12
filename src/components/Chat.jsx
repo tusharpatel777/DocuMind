@@ -290,7 +290,7 @@ export default function Chat({
 
       <form
         onSubmit={handleSubmit}
-        className="p-3 sm:p-4 border-t border-slate-900/80 bg-slate-950/50 flex items-center space-x-2 flex-shrink-0"
+        className="p-3 sm:p-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-4 border-t border-slate-900/80 bg-slate-950/50 flex items-center space-x-2 flex-shrink-0"
       >
         <input
           type="text"
@@ -302,7 +302,7 @@ export default function Chat({
               : "Ask anything about selected documents..."
           }
           disabled={selectedDocIds.length === 0 || isStreaming}
-          className="flex-1 px-4 py-2.5 sm:py-3 bg-slate-900/60 border border-slate-850 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 rounded-xl text-sm sm:text-base text-slate-100 placeholder-slate-500 outline-none transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex-1 min-w-0 px-4 py-2.5 sm:py-3 bg-slate-900/60 border border-slate-800 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 rounded-xl text-base text-slate-100 placeholder-slate-500 outline-none transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
         />
         <button
           type="submit"
