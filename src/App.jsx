@@ -133,6 +133,7 @@ export default function App() {
   }, [documents, userId]);
 
   const handleSelectSession = async (sessId) => {
+    if (!sessId) return;
     setSessionId(sessId);
     setActiveCitation(null);
     setError("");
@@ -140,14 +141,19 @@ export default function App() {
     try {
       const details = await fetchSessionDetails(sessId);
       const formattedMessages = [];
-      if (details.turns) {
+      if (details && details.turns && details.turns.length > 0) {
         details.turns.forEach((turn) => {
-          formattedMessages.push({ type: "user", content: turn.query });
+          formattedMessages.push({ 
+            type: "user", 
+            role: "user",
+            content: turn.query || turn.prompt || "" 
+          });
           formattedMessages.push({
             type: "assistant",
-            content: turn.answer,
-            citations: turn.citations,
-            provider: turn.info?.provider || "groq",
+            role: "assistant",
+            content: turn.answer || turn.content || "",
+            citations: turn.citations || [],
+            provider: turn.info?.provider || turn.provider || "groq",
             faithfulness: turn.faithfulness,
             answer_relevancy: turn.answer_relevancy,
             rag_inspector: turn.rag_inspector
@@ -155,12 +161,12 @@ export default function App() {
         });
       }
       setMessages(formattedMessages);
-      if (details.doc_ids && details.doc_ids.length > 0) {
+      if (details && details.doc_ids && details.doc_ids.length > 0) {
         setSelectedDocIds(details.doc_ids);
       }
     } catch (err) {
-      console.error("Failed to load session details:", err);
-      setError("Failed to load chat history.");
+      console.warn("Session history not yet in database or empty:", err);
+      setMessages([]);
     }
   };
 
