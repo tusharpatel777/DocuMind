@@ -371,40 +371,35 @@ export default function App() {
       <div className="absolute bottom-0 right-1/4 w-[450px] h-[450px] bg-emerald-950/20 rounded-full blur-[120px] pointer-events-none" />
 
       {/* Main Reference-Style Header */}
-      <header className="flex-shrink-0 border-b border-white/[0.08] bg-[#06090e]/90 backdrop-blur-xl z-50 px-4 sm:px-6 py-3 flex items-center justify-between">
+      <header className="flex-shrink-0 border-b border-white/[0.08] bg-[#06090e]/95 backdrop-blur-xl z-30 px-3 sm:px-6 py-2.5 flex items-center justify-between gap-2">
         {/* Left: Brand Logo & Title */}
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-2 sm:space-x-3 shrink-0">
           <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 text-slate-400 hover:text-white bg-slate-900/60 rounded-xl border border-white/10 transition cursor-pointer"
+            onClick={() => setMobileMenuOpen(true)}
+            className="md:hidden p-1.5 text-slate-400 hover:text-white bg-slate-900/80 rounded-xl border border-white/10 transition cursor-pointer"
             title="Toggle Menu"
           >
             <Menu className="w-4 h-4" />
           </button>
 
-          {/* Glowing Emerald Icon (InterviewOS Reference Style) */}
-          <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 glow-emerald-sm transition-transform hover:scale-105">
-            <Mic className="w-4 h-4 fill-emerald-400/20" />
+          {/* Glowing Emerald Icon */}
+          <div className="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 glow-emerald-sm transition-transform hover:scale-105 shrink-0">
+            <Mic className="w-3.5 h-3.5 fill-emerald-400/20" />
           </div>
 
-          <div>
-            <div className="flex items-center space-x-2">
-              <h1 className="text-base font-bold tracking-tight text-white flex items-center">
-                DocuMind <span className="text-emerald-400 ml-1 font-serif-accent italic font-normal text-lg">AI 2.0</span>
-              </h1>
-              <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5 animate-pulse" />
-                Live Grounded
-              </span>
-            </div>
-            <p className="text-[10px] text-slate-400 hidden md:block">
-              Interactive Citation-Grounded Research Engine
-            </p>
+          <div className="flex items-center space-x-1.5">
+            <span className="text-sm sm:text-base font-bold text-white tracking-tight whitespace-nowrap">
+              DocuMind <span className="text-emerald-400 font-serif-accent italic font-normal text-sm sm:text-base ml-0.5">2.0</span>
+            </span>
+            <span className="hidden md:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5 animate-pulse" />
+              Live Grounded
+            </span>
           </div>
         </div>
 
         {/* Center/Right: Badges, Actions & Start Q&A Button */}
-        <div className="flex items-center space-x-2 sm:space-x-3">
+        <div className="flex items-center space-x-1.5 sm:space-x-2.5 shrink-0">
           {/* Quick Stats / Badges */}
           <div className="hidden xl:flex items-center space-x-2 text-xs text-slate-300 bg-slate-900/80 border border-white/[0.08] px-3 py-1.5 rounded-xl">
             <Flame className="w-3.5 h-3.5 text-amber-400" />
@@ -416,7 +411,7 @@ export default function App() {
 
           <button
             onClick={() => setMobileLibraryOpen(!mobileLibraryOpen)}
-            className="lg:hidden p-2 text-slate-400 hover:text-emerald-400 bg-slate-900/60 rounded-xl border border-white/10 transition"
+            className="lg:hidden p-2 text-slate-400 hover:text-emerald-400 bg-slate-900/80 rounded-xl border border-white/10 transition"
             title="Open Document Library"
           >
             <FolderOpen className="w-4 h-4" />
@@ -430,27 +425,28 @@ export default function App() {
             <span>Analytics</span>
           </button>
 
-          {/* Primary Action Button (Reference Style Green Pill) */}
+          {/* Primary Action Button */}
           <button
             onClick={handleNewChat}
-            className="px-3.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl shadow-lg shadow-emerald-500/25 flex items-center space-x-1.5 transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
+            className="px-2.5 sm:px-3.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl shadow-lg shadow-emerald-500/25 flex items-center space-x-1.5 transition-all hover:scale-[1.02] active:scale-95 cursor-pointer shrink-0"
           >
-            <Play className="w-3.5 h-3.5 fill-slate-950" />
-            <span>New Chat</span>
+            <Play className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-slate-950" />
+            <span className="hidden sm:inline">New Chat</span>
+            <span className="sm:hidden">New</span>
           </button>
 
-          {/* User Profile Avatar */}
+          {/* User Profile Avatar (Desktop) */}
           {user && (
-            <div className="flex items-center space-x-2 bg-slate-900/80 pl-2 pr-1.5 py-1 rounded-xl border border-white/[0.08]">
+            <div className="hidden sm:flex items-center space-x-1.5 bg-slate-900/80 pl-2 pr-1.5 py-1 rounded-xl border border-white/[0.08] shrink-0">
               {user.picture ? (
                 <img
                   src={user.picture}
                   alt="Avatar"
-                  className="w-6 h-6 rounded-full border border-emerald-500/30"
+                  className="w-5 h-5 sm:w-6 sm:h-6 rounded-full border border-emerald-500/30"
                   referrerPolicy="no-referrer"
                 />
               ) : (
-                <div className="w-6 h-6 rounded-full bg-emerald-600 flex items-center justify-center text-xs font-bold text-white">
+                <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-emerald-600 flex items-center justify-center text-xs font-bold text-white">
                   {user.name ? user.name[0] : "T"}
                 </div>
               )}
@@ -471,15 +467,15 @@ export default function App() {
         
         {mobileMenuOpen && (
           <div 
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-30 md:hidden"
+            className="fixed inset-0 bg-black/80 backdrop-blur-md z-40 md:hidden"
             onClick={() => setMobileMenuOpen(false)}
           />
         )}
 
         {/* Sessions Sidebar */}
-        <aside className={`fixed inset-y-0 left-0 w-64 bg-[#080d14]/98 border-r border-white/[0.08] flex flex-col z-40 transition-transform duration-300 transform ${
+        <aside className={`fixed inset-y-0 left-0 w-72 max-w-[85vw] bg-[#080d14] border-r border-white/[0.08] flex flex-col z-50 transition-transform duration-300 transform shadow-2xl ${
           mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
-        } md:relative md:translate-x-0 md:flex flex-shrink-0`}>
+        } md:relative md:translate-x-0 md:flex md:w-64 md:z-20 flex-shrink-0`}>
           <div className="p-3.5 border-b border-white/[0.08] flex items-center justify-between gap-2">
             <button
               onClick={handleNewChat}
@@ -538,17 +534,17 @@ export default function App() {
 
           {/* User Profile & Sign Out footer in sidebar drawer */}
           {user && (
-            <div className="p-3 border-t border-white/[0.08] bg-[#070b12] flex items-center justify-between">
+            <div className="p-3.5 border-t border-white/[0.08] bg-[#070b12] flex items-center justify-between">
               <div className="flex items-center space-x-2 truncate flex-1 mr-2">
                 {user.picture ? (
                   <img
                     src={user.picture}
                     alt="Avatar"
-                    className="w-6 h-6 rounded-full border border-emerald-500/30 shrink-0"
+                    className="w-7 h-7 rounded-full border border-emerald-500/30 shrink-0"
                     referrerPolicy="no-referrer"
                   />
                 ) : (
-                  <div className="w-6 h-6 rounded-full bg-emerald-600 flex items-center justify-center text-xs font-bold text-white shrink-0">
+                  <div className="w-7 h-7 rounded-full bg-emerald-600 flex items-center justify-center text-xs font-bold text-white shrink-0">
                     {user.name ? user.name[0] : "T"}
                   </div>
                 )}
@@ -558,7 +554,7 @@ export default function App() {
               </div>
               <button
                 onClick={handleLogout}
-                className="px-2 py-1 bg-rose-950/40 hover:bg-rose-900/60 text-rose-400 border border-rose-500/30 rounded-lg text-[11px] font-semibold transition shrink-0"
+                className="px-2.5 py-1.5 bg-rose-950/40 hover:bg-rose-900/60 text-rose-400 border border-rose-500/30 rounded-xl text-xs font-semibold transition shrink-0"
               >
                 Sign Out
               </button>
