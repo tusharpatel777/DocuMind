@@ -1,5 +1,23 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Send, ArrowUp, Sparkles, AlertCircle, FileText, ChevronRight } from "lucide-react";
+import { 
+  Send, 
+  Sparkles, 
+  AlertCircle, 
+  FileText, 
+  Mic, 
+  Volume2, 
+  VolumeX, 
+  Activity, 
+  Download, 
+  Copy, 
+  Check, 
+  Layers, 
+  Zap, 
+  Settings2,
+  ChevronDown
+} from "lucide-react";
+import RagInspector from "./RagInspector";
+import VoiceAssistant from "./VoiceAssistant";
 
 export default function Chat({
   messages,
@@ -15,10 +33,23 @@ export default function Chat({
   setRerank,
   useHybrid,
   setUseHybrid,
-  currentInfo
+  useParentChild,
+  setUseParentChild,
+  selectedProvider,
+  setSelectedProvider,
+  selectedModel,
+  setSelectedModel,
+  currentInspectorData
 }) {
   const [input, setInput] = useState("");
+  const [voiceOpen, setVoiceOpen] = useState(false);
+  const [inspectorModalData, setInspectorModalData] = useState(null);
+  const [isSpeakingIndex, setIsSpeakingIndex] = useState(null);
+  const [copiedIndex, setCopiedIndex] = useState(null);
+  const [showConfig, setShowConfig] = useState(false);
+
   const messagesEndRef = useRef(null);
+  const synthRef = useRef(window.speechSynthesis || null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -33,6 +64,65 @@ export default function Chat({
     if (!input.trim() || isStreaming || selectedDocIds.length === 0) return;
     onSendMessage(input.trim());
     setInput("");
+  };
+
+  const handleVoiceTranscript = (text) => {
+    setInput(text);
+  };
+
+  // Text-To-Speech
+  const handleReadAloud = (text, index) => {
+    if (!synthRef.current) return;
+
+    if (isSpeakingIndex === index) {
+      synthRef.current.cancel();
+      setIsSpeakingIndex(null);
+      return;
+    }
+
+    synthRef.current.cancel();
+    // Clean citation brackets for smoother natural speech
+    const cleanText = text.replace(/\[SOURCE:\s*[a-zA-Z0-9_-]+\s*\]/gi, "");
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+
+    utterance.onend = () => {
+      setIsSpeakingIndex(null);
+    };
+
+    utterance.onerror = () => {
+      setIsSpeakingIndex(null);
+    };
+
+    setIsSpeakingIndex(index);
+    synthRef.current.speak(utterance);
+  };
+
+  const handleCopyMessage = (text, index) => {
+    navigator.clipboard.writeText(text);
+    setCopiedIndex(index);
+    setTimeout(() => setCopiedIndex(null), 2000);
+  };
+
+  const handleExportChat = () => {
+    if (messages.length === 0) return;
+    let mdContent = `# DocuMind AI Conversation Export\n\nDate: ${new Date().toLocaleString()}\n\n---\n\n`;
+    messages.forEach((m, idx) => {
+      if (m.type === "user") {
+        mdContent += `### 👤 User:\n${m.content}\n\n`;
+      } else {
+        mdContent += `### 🤖 DocuMind AI (${m.provider || "groq"}):\n${m.content}\n\n`;
+      }
+    });
+
+    const blob = new Blob([mdContent], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `documind-chat-${Date.now()}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const renderFormattedContent = (msg) => {
@@ -55,7 +145,7 @@ export default function Chat({
       }
       
       const citeIndex = citations.findIndex(
-        (c) => c.chunk_id.toLowerCase() === chunkId.trim().toLowerCase()
+        (c) => c.chunk_id?.toLowerCase() === chunkId.trim().toLowerCase()
       );
       
       if (citeIndex !== -1) {
@@ -67,7 +157,7 @@ export default function Chat({
             className="inline-flex items-center justify-center px-1.5 py-0.5 mx-0.5 text-[10px] font-bold bg-emerald-500/10 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/20 rounded cursor-pointer transition-all duration-200 align-super"
             title={`${citation.doc_name} (Page ${citation.page})`}
           >
-            {citeIndex + 1}
+            [{citeIndex + 1}]
           </button>
         );
       } else {
@@ -85,233 +175,305 @@ export default function Chat({
       elements.push(text.substring(lastIndex));
     }
     
-    return <p className="whitespace-pre-wrap">{elements.length > 0 ? elements : text}</p>;
+    return <div className="whitespace-pre-wrap leading-relaxed text-sm">{elements.length > 0 ? elements : text}</div>;
   };
 
   const renderStreamingContent = (text) => {
     const cleanText = text.replace(/\[SOURCE:\s*[a-zA-Z0-9_-]+\s*\]/gi, "");
-    return <p className="whitespace-pre-wrap">{cleanText}</p>;
-  };
-
-  const renderRagasBadges = (msg) => {
-    if (msg.faithfulness === undefined && msg.answer_relevancy === undefined) return null;
-    
-    const getScoreColor = (score) => {
-      if (score === null || score === undefined) return "text-slate-500 bg-slate-900 border-slate-800/60";
-      if (score >= 0.8) return "text-emerald-400 bg-emerald-950/20 border-emerald-500/25";
-      if (score >= 0.5) return "text-amber-400 bg-amber-950/20 border-amber-500/25";
-      return "text-red-400 bg-red-950/20 border-red-500/25";
-    };
-    
-    const formatPercent = (score) => {
-      if (score === null || score === undefined) return "Calculating...";
-      return `${Math.round(score * 100)}%`;
-    };
-
-    return (
-      <div className="flex items-center gap-2 mb-3">
-        <div className={`text-[10px] font-bold px-2 py-1 rounded-md border flex items-center gap-1 ${getScoreColor(msg.faithfulness)}`}>
-          <span>Faithfulness:</span>
-          <span>{formatPercent(msg.faithfulness)}</span>
-        </div>
-        <div className={`text-[10px] font-bold px-2 py-1 rounded-md border flex items-center gap-1 ${getScoreColor(msg.answer_relevancy)}`}>
-          <span>Relevancy:</span>
-          <span>{formatPercent(msg.answer_relevancy)}</span>
-        </div>
-      </div>
-    );
-  };
-
-  const getCitationsForMessage = (msg) => {
-    const info = msg.info;
-    const hasCitations = msg.citations && msg.citations.length > 0;
-    const hasEval = msg.faithfulness !== undefined || msg.answer_relevancy !== undefined;
-    
-    if (!info && !hasCitations && !hasEval) return null;
-    
-    return (
-      <div className="mt-4 pt-3 border-t border-slate-800/60">
-        {hasEval && renderRagasBadges(msg)}
-
-        {info && (
-          <div className="text-[10px] text-slate-450 mb-2.5 flex items-center space-x-1.5 bg-emerald-950/10 px-2.5 py-1.5 rounded-lg border border-emerald-500/20">
-            <Sparkles className="w-3 h-3 text-emerald-450" />
-            <span>
-              Retrieved {info.retrieved_count} chunks, re-ranked to top {info.reranked_count}
-              {info.rerank_active ? " (Rerank: Active)" : " (Rerank: Inactive)"}
-            </span>
-          </div>
-        )}
-        
-        {hasCitations && (
-          <>
-            <p className="text-xs font-semibold text-slate-400 mb-2 flex items-center">
-              <Sparkles className="w-3.5 h-3.5 text-emerald-400 mr-1.5" />
-              Verified Sources ({msg.citations.length})
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {msg.citations.map((cite, i) => (
-                <button
-                   key={cite.chunk_id || i}
-                  onClick={() => setActiveCitation(cite)}
-                  className="text-xs px-2.5 py-1.5 bg-emerald-950/5 hover:bg-emerald-950/15 border border-slate-900 hover:border-emerald-500/25 rounded-lg flex items-center space-x-1.5 text-slate-300 transition-all duration-200"
-                >
-                  <FileText className="w-3.5 h-3.5 text-emerald-450 flex-shrink-0" />
-                  <span className="truncate max-w-[120px]">{cite.doc_name}</span>
-                  <span className="text-[10px] px-1 bg-slate-900 text-slate-500 rounded-md">
-                    P. {cite.page}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </>
-        )}
-      </div>
-    );
+    return <div className="whitespace-pre-wrap leading-relaxed text-sm">{cleanText}</div>;
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-[#070b13]/20 border-l border-slate-900 overflow-hidden relative">
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-5 scrollbar-thin scrollbar-thumb-slate-800">
-        {messages.length === 0 && !currentStreamedAnswer && (
-          <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-3">
-            <div className="p-3 bg-emerald-950/15 border border-emerald-500/20 rounded-full glow-emerald">
-              <Sparkles className="w-8 h-8 text-emerald-450" />
-            </div>
-            <div className="max-w-xs">
-              <h3 className="text-sm font-semibold text-slate-200">Start a Grounded Conversation</h3>
-              <p className="text-xs text-slate-500 mt-1">
-                Select one or more uploaded files from the library and ask any question. Every answer will be verified with citations.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {messages.map((msg, idx) => (
-          <div
-            key={idx}
-            className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}
-          >
-            <div
-              className={`max-w-[85%] rounded-xl p-3.5 text-sm leading-relaxed text-left ${
-                msg.role === "user"
-                  ? "bg-emerald-950/25 text-emerald-50 border border-emerald-500/25 font-medium shadow-md shadow-emerald-950/10 rounded-br-none backdrop-blur-md"
-                  : "bg-slate-900/60 text-slate-200 border border-slate-800/80 rounded-bl-none"
+    <div className="flex flex-col h-full bg-slate-900/60 relative overflow-hidden">
+      {/* Top Bar: Model Selector + Retrieval Flags + Actions */}
+      <div className="px-6 py-3.5 border-b border-slate-800 bg-slate-950/40 backdrop-blur-md flex items-center justify-between z-10">
+        <div className="flex items-center space-x-3">
+          {/* Provider/Model Selector */}
+          <div className="flex items-center space-x-1.5 bg-slate-900 border border-slate-800 rounded-xl p-1">
+            <button
+              onClick={() => {
+                setSelectedProvider("groq");
+                setSelectedModel("llama-3.3-70b-versatile");
+              }}
+              className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+                selectedProvider === "groq"
+                  ? "bg-indigo-600 text-white shadow-sm"
+                  : "text-slate-400 hover:text-slate-200"
               }`}
             >
-              {msg.role === "user" ? (
-                <p className="whitespace-pre-wrap">{msg.content}</p>
-              ) : (
-                renderFormattedContent(msg)
-              )}
-              {msg.role === "assistant" && getCitationsForMessage(msg)}
-            </div>
-            <span className="text-[10px] text-slate-500 mt-1 px-1">
-              {msg.role === "user" ? "You" : "DocuMind AI"}
+              Groq Llama 3.3
+            </button>
+            <button
+              onClick={() => {
+                setSelectedProvider("gemini");
+                setSelectedModel("gemini-2.0-flash");
+              }}
+              className={`px-3 py-1 rounded-lg text-xs font-medium transition-all flex items-center space-x-1 ${
+                selectedProvider === "gemini"
+                  ? "bg-emerald-600 text-white shadow-sm"
+                  : "text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              <Sparkles className="w-3 h-3 text-amber-300" />
+              <span>Gemini 2.0 Flash</span>
+            </button>
+          </div>
+
+          {/* Retrieval Badges */}
+          <div className="hidden lg:flex items-center space-x-2 text-[11px] font-mono text-slate-400 pl-2">
+            <span className={`px-2 py-0.5 rounded border ${useParentChild ? "bg-amber-500/10 text-amber-400 border-amber-500/20" : "bg-slate-900 text-slate-500 border-slate-800"}`}>
+              Small-to-Big
+            </span>
+            <span className={`px-2 py-0.5 rounded border ${useHybrid ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20" : "bg-slate-900 text-slate-500 border-slate-800"}`}>
+              Hybrid RRF
+            </span>
+            <span className={`px-2 py-0.5 rounded border ${rerank ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-slate-900 text-slate-500 border-slate-800"}`}>
+              MiniLM Rerank
             </span>
           </div>
-        ))}
+        </div>
 
+        {/* Right Tools */}
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => setShowConfig(!showConfig)}
+            className={`p-2 rounded-xl border transition-colors ${
+              showConfig ? "bg-indigo-600/20 border-indigo-500 text-indigo-400" : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white"
+            }`}
+            title="Configure RAG Retrieval Parameters"
+          >
+            <Settings2 className="w-4 h-4" />
+          </button>
+
+          {messages.length > 0 && (
+            <button
+              onClick={handleExportChat}
+              className="p-2 bg-slate-900 border border-slate-800 hover:bg-slate-800 rounded-xl text-slate-400 hover:text-white transition-colors"
+              title="Export Conversation as Markdown"
+            >
+              <Download className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Expandable Configuration Drawer */}
+      {showConfig && (
+        <div className="px-6 py-3 bg-slate-950 border-b border-slate-800 text-xs flex flex-wrap items-center gap-4 animate-fadeIn">
+          <label className="flex items-center space-x-2 cursor-pointer text-slate-300">
+            <input
+              type="checkbox"
+              checked={useParentChild}
+              onChange={(e) => setUseParentChild(e.target.checked)}
+              className="rounded bg-slate-800 border-slate-700 text-indigo-600 focus:ring-0"
+            />
+            <span>Hierarchical Small-to-Big Retrieval</span>
+          </label>
+          <label className="flex items-center space-x-2 cursor-pointer text-slate-300">
+            <input
+              type="checkbox"
+              checked={useHybrid}
+              onChange={(e) => setUseHybrid(e.target.checked)}
+              className="rounded bg-slate-800 border-slate-700 text-indigo-600 focus:ring-0"
+            />
+            <span>Hybrid Dense + BM25 Fusion (RRF k=60)</span>
+          </label>
+          <label className="flex items-center space-x-2 cursor-pointer text-slate-300">
+            <input
+              type="checkbox"
+              checked={rerank}
+              onChange={(e) => setRerank(e.target.checked)}
+              className="rounded bg-slate-800 border-slate-700 text-indigo-600 focus:ring-0"
+            />
+            <span>Cross-Encoder Neural Re-Ranking</span>
+          </label>
+          <label className="flex items-center space-x-2 cursor-pointer text-slate-300">
+            <input
+              type="checkbox"
+              checked={useHyde}
+              onChange={(e) => setUseHyde(e.target.checked)}
+              className="rounded bg-slate-800 border-slate-700 text-indigo-600 focus:ring-0"
+            />
+            <span>HyDE (Hypothetical Document Embeddings)</span>
+          </label>
+        </div>
+      )}
+
+      {/* Messages Scroll Area */}
+      <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+        {messages.length === 0 && !isStreaming ? (
+          <div className="h-full flex flex-col items-center justify-center text-center p-8">
+            <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-indigo-500/20 to-emerald-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 mb-4 shadow-xl">
+              <Sparkles className="w-8 h-8" />
+            </div>
+            <h3 className="text-xl font-bold text-white mb-2">
+              DocuMind AI Enterprise
+            </h3>
+            <p className="text-sm text-slate-400 max-w-md mb-6 leading-relaxed">
+              Ask deep questions over your uploaded documents with multi-modal voice input, Google Gemini 2.0 Flash, and precision citation grounding.
+            </p>
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={() => setVoiceOpen(true)}
+                className="px-4 py-2 bg-indigo-600/20 border border-indigo-500/30 hover:bg-indigo-600/30 text-indigo-300 text-xs font-semibold rounded-xl flex items-center space-x-2 transition-all"
+              >
+                <Mic className="w-4 h-4 text-indigo-400" />
+                <span>Try Voice Question</span>
+              </button>
+            </div>
+          </div>
+        ) : (
+          messages.map((msg, idx) => (
+            <div
+              key={idx}
+              className={`flex flex-col ${
+                msg.type === "user" ? "items-end" : "items-start"
+              }`}
+            >
+              <div
+                className={`max-w-3xl rounded-2xl p-4 shadow-md transition-all ${
+                  msg.type === "user"
+                    ? "bg-indigo-600 text-white rounded-br-none"
+                    : "bg-slate-900 border border-slate-800 text-slate-200 rounded-bl-none w-full"
+                }`}
+              >
+                {/* Assistant Header / Badges */}
+                {msg.type === "assistant" && (
+                  <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-800/80 text-[11px] font-mono text-slate-400">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-indigo-400 font-bold">
+                        {msg.provider ? msg.provider.toUpperCase() : "DOCUMIND"}
+                      </span>
+                      {msg.cache_hit && (
+                        <span className="text-amber-400 bg-amber-500/10 px-1.5 py-0.2 rounded border border-amber-500/20">
+                          ⚡ CACHE HIT
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center space-x-1.5">
+                      {/* RAG Inspector Button */}
+                      {(msg.rag_inspector || currentInspectorData) && (
+                        <button
+                          onClick={() => setInspectorModalData(msg.rag_inspector || currentInspectorData)}
+                          className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20 flex items-center space-x-1 transition-colors"
+                          title="Open RAG Pipeline Inspector"
+                        >
+                          <Activity className="w-3 h-3" />
+                          <span>Inspect</span>
+                        </button>
+                      )}
+
+                      {/* Read Aloud TTS */}
+                      <button
+                        onClick={() => handleReadAloud(msg.content, idx)}
+                        className={`p-1 rounded hover:bg-slate-800 transition-colors ${
+                          isSpeakingIndex === idx ? "text-indigo-400 animate-pulse" : "text-slate-400 hover:text-slate-200"
+                        }`}
+                        title="Read aloud"
+                      >
+                        {isSpeakingIndex === idx ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+                      </button>
+
+                      {/* Copy */}
+                      <button
+                        onClick={() => handleCopyMessage(msg.content, idx)}
+                        className="p-1 text-slate-400 hover:text-slate-200 rounded hover:bg-slate-800 transition-colors"
+                        title="Copy text"
+                      >
+                        {copiedIndex === idx ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Content */}
+                {msg.type === "user" ? (
+                  <p className="whitespace-pre-wrap text-sm leading-relaxed">{msg.content}</p>
+                ) : (
+                  renderFormattedContent(msg)
+                )}
+              </div>
+            </div>
+          ))
+        )}
+
+        {/* Live Stream Indicator */}
         {isStreaming && (
           <div className="flex flex-col items-start">
-            <div className="max-w-[85%] rounded-xl p-3.5 text-sm leading-relaxed text-left bg-slate-900/60 text-slate-200 border border-slate-880/80 rounded-bl-none">
-              {currentStreamedAnswer ? (
-                renderStreamingContent(currentStreamedAnswer)
-              ) : (
-                <div className="flex items-center space-x-1.5 py-1">
-                  <div className="w-2 h-2 bg-emerald-450 rounded-full typing-dot"></div>
-                  <div className="w-2 h-2 bg-emerald-450 rounded-full typing-dot"></div>
-                  <div className="w-2 h-2 bg-emerald-450 rounded-full typing-dot"></div>
-                </div>
-              )}
-              {currentInfo && currentInfo.type === "info_status" && (
-                <div className="mt-3 pt-2.5 border-t border-slate-800/60 text-[10px] text-emerald-400 flex items-center space-x-1.5 animate-pulse">
-                  <Sparkles className="w-3 h-3 text-emerald-400 flex-shrink-0 font-bold" />
-                  <span className="font-semibold">{currentInfo.message}...</span>
-                </div>
-              )}
-              {currentInfo && currentInfo.type === "info" && (
-                <div className="mt-3 pt-2.5 border-t border-slate-800/60 text-[10px] text-slate-400 flex items-center space-x-1.5">
-                  <Sparkles className="w-3 h-3 text-emerald-400 flex-shrink-0" />
-                  <span>
-                    Retrieved {currentInfo.retrieved_count} chunks, re-ranked to top {currentInfo.reranked_count}
-                    {currentInfo.rerank_active ? " (Rerank: Active)" : " (Rerank: Inactive)"}
-                  </span>
-                </div>
-              )}
+            <div className="max-w-3xl w-full rounded-2xl rounded-bl-none p-4 bg-slate-900 border border-indigo-500/30 text-slate-200 shadow-lg">
+              <div className="flex items-center space-x-2 pb-2 mb-2 border-b border-slate-800 text-[11px] font-mono text-indigo-400">
+                <Sparkles className="w-3.5 h-3.5 animate-spin text-indigo-400" />
+                <span>STREAMING RESPONSE...</span>
+              </div>
+              {renderStreamingContent(currentStreamedAnswer)}
             </div>
-            <span className="text-[10px] text-slate-500 mt-1 px-1">Thinking...</span>
           </div>
         )}
 
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="px-4 py-2 sm:px-5 sm:py-2.5 bg-slate-950/35 border-t border-slate-900/80 flex items-center justify-between sm:justify-start gap-2 sm:gap-6 flex-shrink-0 z-10 overflow-x-auto scrollbar-none">
-        <label className="flex items-center space-x-1.5 cursor-pointer group flex-shrink-0">
-          <input
-            type="checkbox"
-            checked={useHybrid}
-            onChange={(e) => setUseHybrid(e.target.checked)}
-            className="w-3.5 h-3.5 rounded border-slate-800 text-emerald-600 focus:ring-emerald-500/20 focus:ring-opacity-50 focus:ring-offset-0 bg-slate-900 cursor-pointer transition"
-          />
-          <span className="text-[10px] sm:text-xs text-slate-450 group-hover:text-slate-200 transition select-none">
-            <span className="inline sm:hidden">Hybrid</span>
-            <span className="hidden sm:inline">Hybrid Search (Dense + BM25)</span>
-          </span>
-        </label>
-        
-        <label className="flex items-center space-x-1.5 cursor-pointer group flex-shrink-0">
-          <input
-            type="checkbox"
-            checked={rerank}
-            onChange={(e) => setRerank(e.target.checked)}
-            className="w-3.5 h-3.5 rounded border-slate-800 text-emerald-600 focus:ring-emerald-500/20 focus:ring-opacity-50 focus:ring-offset-0 bg-slate-900 cursor-pointer transition"
-          />
-          <span className="text-[10px] sm:text-xs text-slate-450 group-hover:text-slate-200 transition select-none">
-            <span className="inline sm:hidden">Re-rank</span>
-            <span className="hidden sm:inline">Cross-Encoder Re-ranking</span>
-          </span>
-        </label>
+      {/* Bottom Input Box */}
+      <div className="p-4 bg-slate-950/60 border-t border-slate-800 backdrop-blur-md">
+        {selectedDocIds.length === 0 && (
+          <div className="mb-2.5 flex items-center space-x-2 text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-xl">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>Please select or upload at least one document from the sidebar to start asking questions.</span>
+          </div>
+        )}
 
-        <label className="flex items-center space-x-1.5 cursor-pointer group flex-shrink-0">
+        <form onSubmit={handleSubmit} className="flex items-center space-x-2">
+          {/* Voice Input Trigger */}
+          <button
+            type="button"
+            onClick={() => setVoiceOpen(true)}
+            className="p-3 bg-slate-900 hover:bg-slate-800 text-indigo-400 hover:text-indigo-300 border border-slate-800 rounded-2xl transition-all shadow-sm flex items-center justify-center"
+            title="Voice query (Whisper Large v3)"
+          >
+            <Mic className="w-5 h-5" />
+          </button>
+
+          {/* Text Input */}
           <input
-            type="checkbox"
-            checked={useHyde}
-            onChange={(e) => setUseHyde(e.target.checked)}
-            className="w-3.5 h-3.5 rounded border-slate-800 text-emerald-600 focus:ring-emerald-500/20 focus:ring-opacity-50 focus:ring-offset-0 bg-slate-900 cursor-pointer transition"
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            disabled={selectedDocIds.length === 0 || isStreaming}
+            placeholder={
+              selectedDocIds.length === 0
+                ? "Select a document to ask questions..."
+                : isStreaming
+                ? "Synthesizing answer..."
+                : `Ask a question across ${selectedDocIds.length} document(s)...`
+            }
+            className="flex-1 px-4 py-3 bg-slate-900 border border-slate-800 rounded-2xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors disabled:opacity-50"
           />
-          <span className="text-[10px] sm:text-xs text-slate-450 group-hover:text-slate-200 transition select-none">
-            <span className="inline sm:hidden">HyDE</span>
-            <span className="hidden sm:inline">HyDE Query Expansion</span>
-          </span>
-        </label>
+
+          {/* Send Button */}
+          <button
+            type="submit"
+            disabled={!input.trim() || isStreaming || selectedDocIds.length === 0}
+            className="p-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-2xl transition-all shadow-lg shadow-indigo-600/30 flex items-center justify-center"
+          >
+            <Send className="w-5 h-5" />
+          </button>
+        </form>
       </div>
 
-      <form
-        onSubmit={handleSubmit}
-        className="p-3 sm:p-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-4 border-t border-slate-900/80 bg-slate-950/50 flex items-center space-x-2 flex-shrink-0"
-      >
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder={
-            selectedDocIds.length === 0
-              ? "Select documents from library to start chatting"
-              : "Ask anything about selected documents..."
-          }
-          disabled={selectedDocIds.length === 0 || isStreaming}
-          className="flex-1 min-w-0 px-4 py-2.5 sm:py-3 bg-slate-900/60 border border-slate-800 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 rounded-xl text-base text-slate-100 placeholder-slate-500 outline-none transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-        />
-        <button
-          type="submit"
-          disabled={!input.trim() || isStreaming || selectedDocIds.length === 0}
-          className="p-2.5 sm:p-3 bg-emerald-550/10 hover:bg-emerald-500/20 text-emerald-450 hover:text-emerald-300 border border-emerald-500/25 hover:border-emerald-400/50 rounded-xl transition-all duration-300 disabled:bg-slate-850 disabled:text-slate-500 disabled:border-transparent disabled:cursor-not-allowed shadow-[0_0_15px_rgba(16,185,129,0.05)]"
-        >
-          <Send className="w-4 h-4" />
-        </button>
-      </form>
+      {/* Voice Assistant Modal */}
+      <VoiceAssistant
+        isOpen={voiceOpen}
+        onClose={() => setVoiceOpen(false)}
+        onTranscriptComplete={handleVoiceTranscript}
+      />
+
+      {/* RAG Inspector Modal */}
+      <RagInspector
+        isOpen={Boolean(inspectorModalData)}
+        onClose={() => setInspectorModalData(null)}
+        inspectorData={inspectorModalData}
+      />
     </div>
   );
 }

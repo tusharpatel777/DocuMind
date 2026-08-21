@@ -1,5 +1,9 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || "https://tusharpatel-documind.hf.space/api/v1";
 
+/**
+ * DocuMind AI API Client
+ */
+
 export async function fetchDocuments(userId) {
   const res = await fetch(`${API_BASE_URL}/documents?user_id=${encodeURIComponent(userId)}`);
   if (!res.ok) throw new Error("Failed to fetch documents.");
@@ -30,17 +34,47 @@ export async function deleteDocument(docId, userId) {
   return res.json();
 }
 
+export async function transcribeAudio(audioBlob, language = "en") {
+  const formData = new FormData();
+  formData.append("file", audioBlob, "recording.webm");
+  formData.append("language", language);
+
+  const res = await fetch(`${API_BASE_URL}/voice/transcribe`, {
+    method: "POST",
+    body: formData,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || "Voice transcription failed.");
+  }
+  return res.json();
+}
+
+export async function fetchSupportedModels() {
+  try {
+    const res = await fetch(`${API_BASE_URL}/voice/models`);
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
 export async function streamChatQuery({
   query,
   sessionId,
   userId,
   docIds,
+  provider = "groq",
+  model = null,
   useHyde = false,
-  rerank = false,
+  rerank = true,
   useHybrid = true,
+  useParentChild = true,
   onToken,
   onCitations,
-  onInfo,
+  onInspector,
+  onDone,
   onError
 }) {
   try {
@@ -54,9 +88,12 @@ export async function streamChatQuery({
         session_id: sessionId,
         user_id: userId,
         doc_ids: docIds,
+        provider,
+        model,
         use_hyde: useHyde,
-        rerank: rerank,
+        rerank,
         use_hybrid: useHybrid,
+        use_parent_child: useParentChild,
         top_k: 5
       }),
     });
@@ -75,37 +112,48 @@ export async function streamChatQuery({
       if (done) break;
 
       buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() || "";
+      const blocks = buffer.split("\n\n");
+      buffer = blocks.pop() || "";
 
-      for (const line of lines) {
-        const cleaned = line.trim();
-        if (!cleaned.startsWith("data: ")) continue;
-        const rawData = cleaned.slice(6).trim();
+      for (const block of blocks) {
+        if (!block.trim()) continue;
 
-        if (rawData === "[DONE]") {
-          continue;
+        let eventType = "message";
+        let dataStr = "";
+
+        const lines = block.split("\n");
+        for (const line of lines) {
+          if (line.startsWith("event: ")) {
+            eventType = line.slice(7).trim();
+          } else if (line.startsWith("data: ")) {
+            dataStr = line.slice(6).trim();
+          }
         }
 
+        if (!dataStr) continue;
+
         try {
-          const parsed = JSON.parse(rawData);
-          if (parsed.type === "token") {
-            onToken(parsed.content);
-          } else if (parsed.type === "info" || parsed.type === "info_status") {
-            if (onInfo) onInfo(parsed);
-          } else if (parsed.type === "citations") {
-            onCitations(parsed.sources, parsed.info);
-          } else if (parsed.type === "error") {
-            onError(parsed.content);
+          const parsed = JSON.parse(dataStr);
+          if (eventType === "delta") {
+            if (onToken) onToken(parsed.text || "");
+          } else if (eventType === "citations") {
+            if (onCitations) onCitations(parsed.citations || [], parsed);
+          } else if (eventType === "inspector") {
+            if (onInspector) onInspector(parsed);
+          } else if (eventType === "done") {
+            if (onDone) onDone(parsed);
+          } else if (eventType === "error") {
+            if (onError) onError(parsed.error || "Generation error");
           }
         } catch (e) {
-          console.error("Failed to parse SSE line:", cleaned, e);
+          // Fallback simple token format
+          if (onToken && dataStr) onToken(dataStr);
         }
       }
     }
   } catch (err) {
     console.error("Stream reader error:", err);
-    onError(err.message || "Connection lost.");
+    if (onError) onError(err.message || "Connection lost.");
   }
 }
 
