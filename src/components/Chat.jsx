@@ -5,6 +5,7 @@ import {
   AlertCircle, 
   FileText, 
   Mic, 
+  MicOff,
   Volume2, 
   VolumeX, 
   Activity, 
@@ -19,7 +20,7 @@ import {
   Play,
   ArrowRight,
   ShieldCheck,
-  ChevronDown
+  ExternalLink
 } from "lucide-react";
 import RagInspector from "./RagInspector";
 import VoiceAssistant from "./VoiceAssistant";
@@ -48,7 +49,8 @@ export default function Chat({
   currentInspectorData
 }) {
   const [input, setInput] = useState("");
-  const [voiceOpen, setVoiceOpen] = useState(false);
+  const [voiceModalOpen, setVoiceModalOpen] = useState(false);
+  const [isLiveListening, setIsLiveListening] = useState(false);
   const [inspectorModalData, setInspectorModalData] = useState(null);
   const [isSpeakingIndex, setIsSpeakingIndex] = useState(null);
   const [copiedIndex, setCopiedIndex] = useState(null);
@@ -56,6 +58,7 @@ export default function Chat({
 
   const messagesEndRef = useRef(null);
   const synthRef = useRef(window.speechSynthesis || null);
+  const recognitionRef = useRef(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -65,9 +68,88 @@ export default function Chat({
     scrollToBottom();
   }, [messages, currentStreamedAnswer]);
 
+  // Clean up speech recognition on unmount
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {}
+      }
+    };
+  }, []);
+
+  // Direct In-Line Live Speech Recognition (Web Speech API)
+  const toggleLiveSpeech = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      // If Web Speech API not supported in browser, open modal fallback
+      setVoiceModalOpen(true);
+      return;
+    }
+
+    if (isLiveListening) {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {}
+      }
+      setIsLiveListening(false);
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = "en-US";
+
+      let initialPrompt = input;
+
+      recognition.onstart = () => {
+        setIsLiveListening(true);
+      };
+
+      recognition.onresult = (event) => {
+        let transcriptChunk = "";
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          transcriptChunk += event.results[i][0].transcript;
+        }
+        if (transcriptChunk) {
+          setInput((prev) => {
+            const base = initialPrompt.trim() ? initialPrompt.trim() + " " : "";
+            return base + transcriptChunk.trim();
+          });
+        }
+      };
+
+      recognition.onerror = (e) => {
+        console.warn("Speech Recognition Error:", e);
+        setIsLiveListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsLiveListening(false);
+      };
+
+      recognition.start();
+      recognitionRef.current = recognition;
+    } catch (err) {
+      console.warn("Direct Speech Recognition failed:", err);
+      setVoiceModalOpen(true);
+    }
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!input.trim() || isStreaming || selectedDocIds.length === 0) return;
+    if (isLiveListening && recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch {}
+      setIsLiveListening(false);
+    }
     onSendMessage(input.trim());
     setInput("");
   };
@@ -87,7 +169,9 @@ export default function Chat({
     }
 
     synthRef.current.cancel();
-    const cleanText = text.replace(/\[SOURCE:\s*[a-zA-Z0-9_-]+\s*\]/gi, "");
+    const cleanText = text
+      .replace(/\[SOURCE:\s*[a-zA-Z0-9_-]+\s*\]/gi, "")
+      .replace(/[#*`_]/g, "");
     const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.rate = 1.0;
     utterance.pitch = 1.0;
@@ -109,7 +193,8 @@ export default function Chat({
     if (messages.length === 0) return;
     let mdContent = `# DocuMind AI Conversation Export\n\nDate: ${new Date().toLocaleString()}\n\n---\n\n`;
     messages.forEach((m) => {
-      if (m.type === "user") {
+      const isUser = m.type === "user" || m.role === "user";
+      if (isUser) {
         mdContent += `### 👤 User:\n${m.content}\n\n`;
       } else {
         mdContent += `### 🤖 DocuMind AI (${m.provider || "groq"}):\n${m.content}\n\n`;
@@ -125,34 +210,30 @@ export default function Chat({
     URL.revokeObjectURL(url);
   };
 
-  const renderFormattedContent = (msg) => {
-    const text = msg.content;
-    const citations = msg.citations || [];
-    
-    if (!text) return "";
-    
-    const regex = /\[SOURCE:\s*([a-zA-Z0-9_-]+)\s*\]/gi;
-    const elements = [];
-    let lastIndex = 0;
+  // Helper to parse bold, links, and inline citations inside a text snippet
+  const renderInlineStyles = (lineText, citations, keyPrefix) => {
+    const citationRegex = /\[SOURCE:\s*([a-zA-Z0-9_-]+)\s*\]/gi;
+    let parts = [];
+    let lastIdx = 0;
     let match;
-    
-    while ((match = regex.exec(text)) !== null) {
-      const matchIndex = match.index;
+
+    while ((match = citationRegex.exec(lineText)) !== null) {
+      const start = match.index;
       const chunkId = match[1];
-      
-      if (matchIndex > lastIndex) {
-        elements.push(text.substring(lastIndex, matchIndex));
+
+      if (start > lastIdx) {
+        parts.push(lineText.substring(lastIdx, start));
       }
-      
+
       const citeIndex = citations.findIndex(
         (c) => c.chunk_id?.toLowerCase() === chunkId.trim().toLowerCase()
       );
-      
+
       if (citeIndex !== -1) {
         const citation = citations[citeIndex];
-        elements.push(
+        parts.push(
           <button
-            key={`cite-${chunkId}-${matchIndex}`}
+            key={`${keyPrefix}-cite-${chunkId}-${start}`}
             onClick={() => setActiveCitation(citation)}
             className="inline-flex items-center justify-center px-1.5 py-0.5 mx-0.5 text-[10px] font-bold bg-emerald-500/15 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/30 rounded-md cursor-pointer transition-all duration-200 align-super"
             title={`${citation.doc_name} (Page ${citation.page})`}
@@ -161,26 +242,142 @@ export default function Chat({
           </button>
         );
       } else {
-        elements.push(
-          <span key={`cite-missing-${matchIndex}`} className="text-slate-500 text-[10px] select-none mx-0.5 align-super">
+        parts.push(
+          <span key={`${keyPrefix}-missing-${start}`} className="text-slate-500 text-[10px] mx-0.5 align-super">
             [*]
           </span>
         );
       }
-      
-      lastIndex = regex.lastIndex;
+
+      lastIdx = citationRegex.lastIndex;
     }
-    
-    if (lastIndex < text.length) {
-      elements.push(text.substring(lastIndex));
+
+    if (lastIdx < lineText.length) {
+      parts.push(lineText.substring(lastIdx));
     }
-    
-    return <div className="whitespace-pre-wrap leading-relaxed text-sm">{elements.length > 0 ? elements : text}</div>;
+
+    // Now format bold text (**bold**) and markdown links [text](url)
+    return parts.map((part, pIdx) => {
+      if (typeof part !== "string") return part;
+
+      // Parse bold **text**
+      const boldParts = part.split(/(\*\*[^*]+\*\*)/g);
+      return boldParts.map((bPart, bIdx) => {
+        if (bPart.startsWith("**") && bPart.endsWith("**")) {
+          const boldContent = bPart.slice(2, -2);
+          return <strong key={`${keyPrefix}-b-${pIdx}-${bIdx}`} className="font-bold text-white">{boldContent}</strong>;
+        }
+
+        // Parse markdown links [title](url)
+        const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
+        let linkElements = [];
+        let linkLast = 0;
+        let lMatch;
+
+        while ((lMatch = linkRegex.exec(bPart)) !== null) {
+          if (lMatch.index > linkLast) {
+            linkElements.push(bPart.substring(linkLast, lMatch.index));
+          }
+          linkElements.push(
+            <a
+              key={`${keyPrefix}-link-${lMatch.index}`}
+              href={lMatch[2]}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-emerald-400 hover:text-emerald-300 underline inline-flex items-center space-x-0.5"
+            >
+              <span>{lMatch[1]}</span>
+              <ExternalLink className="w-2.5 h-2.5 ml-0.5 inline" />
+            </a>
+          );
+          linkLast = linkRegex.lastIndex;
+        }
+
+        if (linkLast < bPart.length) {
+          linkElements.push(bPart.substring(linkLast));
+        }
+
+        return linkElements.length > 0 ? linkElements : bPart;
+      });
+    });
+  };
+
+  // Rich Multi-Line Markdown Renderer
+  const renderFormattedContent = (msg) => {
+    const text = msg.content || "";
+    const citations = msg.citations || [];
+
+    if (!text) return null;
+
+    const lines = text.split("\n");
+    const renderedNodes = [];
+
+    lines.forEach((line, lineIdx) => {
+      const trimmed = line.trim();
+
+      // Heading 3: ### Title
+      if (trimmed.startsWith("### ")) {
+        const title = trimmed.replace(/^###\s+/, "");
+        renderedNodes.push(
+          <h3 key={`h3-${lineIdx}`} className="text-sm font-bold text-emerald-400 mt-4 mb-2 flex items-center space-x-2 border-b border-white/[0.06] pb-1">
+            <span>{renderInlineStyles(title, citations, `h3-${lineIdx}`)}</span>
+          </h3>
+        );
+      }
+      // Heading 2: ## Title
+      else if (trimmed.startsWith("## ")) {
+        const title = trimmed.replace(/^##\s+/, "");
+        renderedNodes.push(
+          <h2 key={`h2-${lineIdx}`} className="text-base font-bold text-white mt-4 mb-2 pb-1 border-b border-emerald-500/30">
+            {renderInlineStyles(title, citations, `h2-${lineIdx}`)}
+          </h2>
+        );
+      }
+      // Heading 1: # Title
+      else if (trimmed.startsWith("# ")) {
+        const title = trimmed.replace(/^#\s+/, "");
+        renderedNodes.push(
+          <h1 key={`h1-${lineIdx}`} className="text-lg font-extrabold text-white mt-4 mb-2">
+            {renderInlineStyles(title, citations, `h1-${lineIdx}`)}
+          </h1>
+        );
+      }
+      // Divider: ---
+      else if (trimmed === "---" || trimmed === "***") {
+        renderedNodes.push(
+          <hr key={`hr-${lineIdx}`} className="border-t border-white/[0.08] my-3" />
+        );
+      }
+      // Bullet list item: * or -
+      else if (trimmed.startsWith("* ") || trimmed.startsWith("- ")) {
+        const itemText = trimmed.replace(/^[*-\s]+/, "");
+        renderedNodes.push(
+          <div key={`li-${lineIdx}`} className="flex items-start space-x-2 my-1 text-slate-200 pl-1 text-sm leading-relaxed">
+            <span className="text-emerald-400 text-base leading-tight select-none">•</span>
+            <div className="flex-1">{renderInlineStyles(itemText, citations, `li-${lineIdx}`)}</div>
+          </div>
+        );
+      }
+      // Blank line
+      else if (!trimmed) {
+        renderedNodes.push(<div key={`sp-${lineIdx}`} className="h-2" />);
+      }
+      // Regular paragraph line
+      else {
+        renderedNodes.push(
+          <p key={`p-${lineIdx}`} className="text-sm text-slate-200 leading-relaxed my-1">
+            {renderInlineStyles(line, citations, `p-${lineIdx}`)}
+          </p>
+        );
+      }
+    });
+
+    return <div className="space-y-0.5 text-left">{renderedNodes}</div>;
   };
 
   const renderStreamingContent = (text) => {
     const cleanText = text.replace(/\[SOURCE:\s*[a-zA-Z0-9_-]+\s*\]/gi, "");
-    return <div className="whitespace-pre-wrap leading-relaxed text-sm">{cleanText}</div>;
+    return <div className="whitespace-pre-wrap leading-relaxed text-sm text-slate-200 text-left">{cleanText}</div>;
   };
 
   const quickPrompts = [
@@ -193,9 +390,9 @@ export default function Chat({
   return (
     <div className="flex flex-col h-full bg-[#06090e] relative overflow-hidden">
       {/* Top Model Switcher & Toolbar */}
-      <div className="px-5 py-3 border-b border-white/[0.08] bg-[#070c14]/90 backdrop-blur-md flex items-center justify-between z-10">
+      <div className="px-5 py-3 border-b border-white/[0.08] bg-[#070c14]/90 backdrop-blur-md flex items-center justify-between z-10 flex-wrap gap-2">
         <div className="flex items-center space-x-3">
-          {/* Provider / Model Switcher */}
+          {/* Provider/Model Selector */}
           <div className="flex items-center space-x-1 bg-slate-950/80 border border-white/[0.08] rounded-xl p-1">
             <button
               onClick={() => {
@@ -254,7 +451,6 @@ export default function Chat({
 
           {messages.length > 0 && (
             <>
-              {/* Delete Current Conversation Button */}
               <button
                 onClick={onDeleteCurrentSession}
                 className="p-2 bg-slate-900/80 border border-white/[0.08] hover:bg-rose-950/40 text-slate-400 hover:text-rose-400 rounded-xl transition-colors"
@@ -263,7 +459,6 @@ export default function Chat({
                 <Trash2 className="w-4 h-4" />
               </button>
 
-              {/* Export Conversation Button */}
               <button
                 onClick={handleExportChat}
                 className="p-2 bg-slate-900/80 border border-white/[0.08] hover:bg-slate-800 rounded-xl text-slate-400 hover:text-white transition-colors"
@@ -323,18 +518,14 @@ export default function Chat({
         {messages.length === 0 && !isStreaming ? (
           /* InterviewOS Reference Hero Screen */
           <div className="max-w-4xl mx-auto my-auto pt-4 pb-8 flex flex-col items-center text-center animate-fadeIn">
-            {/* Grid Card Container (Reference Image Style) */}
             <div className="w-full bg-[#0a0f18]/80 bg-grid-pattern border border-white/[0.08] rounded-3xl p-6 sm:p-10 shadow-2xl relative overflow-hidden">
-              {/* Subtle green ambient accent */}
               <div className="absolute top-0 right-1/4 w-80 h-32 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
-              {/* Pill Badge */}
               <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[11px] font-mono font-medium text-emerald-400 mb-6">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
                 <span>• THE RESEARCH ROOM FOR AMBITIOUS ENGINEERS</span>
               </div>
 
-              {/* Main Headline with Serif Italic Accent */}
               <h2 className="text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-white leading-[1.15] mb-4">
                 Research like it's your <br />
                 <span className="text-emerald-400 font-serif-accent italic font-normal text-3xl sm:text-5xl md:text-6xl">
@@ -343,17 +534,14 @@ export default function Chat({
                 knowledge base.
               </h2>
 
-              {/* Tagline */}
               <p className="text-xs sm:text-sm font-mono text-slate-400 mb-6">
                 // Live voice • Zero hallucination • Mathematical RRF scoring
               </p>
 
-              {/* Narrative description */}
               <p className="text-xs sm:text-sm text-slate-300 max-w-2xl mx-auto leading-relaxed mb-8">
                 A citation-grounded RAG agent that synthesizes complex documents, extracts structured tables, resolves hierarchical small-to-big context paragraphs, and provides verifiable inline source citations.
               </p>
 
-              {/* 4 Feature Check Pills (Reference Image Style) */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 max-w-3xl mx-auto mb-8 text-left">
                 <div className="flex items-center space-x-2 p-2.5 bg-slate-900/60 border border-white/[0.06] rounded-xl text-xs text-slate-200">
                   <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
@@ -373,7 +561,6 @@ export default function Chat({
                 </div>
               </div>
 
-              {/* Quick Starter Chips */}
               <div className="space-y-2">
                 <span className="text-[11px] font-mono text-slate-400 block uppercase tracking-wider">
                   Quick Query Prompts:
@@ -400,79 +587,82 @@ export default function Chat({
             </div>
           </div>
         ) : (
-          messages.map((msg, idx) => (
-            <div
-              key={idx}
-              className={`flex flex-col ${
-                msg.type === "user" ? "items-end" : "items-start"
-              }`}
-            >
+          messages.map((msg, idx) => {
+            const isUser = msg.type === "user" || msg.role === "user";
+            return (
               <div
-                className={`max-w-3xl rounded-2xl p-4 shadow-lg transition-all ${
-                  msg.type === "user"
-                    ? "bg-slate-900 border border-emerald-500/30 text-white rounded-br-none"
-                    : "bg-[#0a0f18] border border-white/[0.08] text-slate-200 rounded-bl-none w-full"
+                key={idx}
+                className={`flex flex-col ${
+                  isUser ? "items-end" : "items-start"
                 }`}
               >
-                {/* Assistant Message Header */}
-                {msg.type === "assistant" && (
-                  <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-white/[0.08] text-[11px] font-mono text-slate-400">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-emerald-400 font-bold tracking-wider">
-                        {msg.provider ? msg.provider.toUpperCase() : "DOCUMIND"}
-                      </span>
-                      {msg.cache_hit && (
-                        <span className="text-emerald-400 bg-emerald-500/10 px-1.5 py-0.2 rounded border border-emerald-500/30">
-                          ⚡ CACHE HIT (&lt;15ms)
+                <div
+                  className={`max-w-3xl rounded-2xl p-4 shadow-lg transition-all ${
+                    isUser
+                      ? "bg-slate-900 border border-emerald-500/30 text-white rounded-br-none"
+                      : "bg-[#0a0f18] border border-white/[0.08] text-slate-200 rounded-bl-none w-full"
+                  }`}
+                >
+                  {/* Assistant Message Header */}
+                  {!isUser && (
+                    <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-white/[0.08] text-[11px] font-mono text-slate-400">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-emerald-400 font-bold tracking-wider">
+                          {msg.provider ? msg.provider.toUpperCase() : "DOCUMIND"}
                         </span>
-                      )}
-                    </div>
+                        {msg.cache_hit && (
+                          <span className="text-emerald-400 bg-emerald-500/10 px-1.5 py-0.2 rounded border border-emerald-500/30">
+                            ⚡ CACHE HIT (&lt;15ms)
+                          </span>
+                        )}
+                      </div>
 
-                    <div className="flex items-center space-x-1.5">
-                      {/* RAG Inspector Button */}
-                      {(msg.rag_inspector || currentInspectorData) && (
+                      <div className="flex items-center space-x-1.5">
+                        {/* RAG Inspector Button */}
+                        {(msg.rag_inspector || currentInspectorData) && (
+                          <button
+                            onClick={() => setInspectorModalData(msg.rag_inspector || currentInspectorData)}
+                            className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/30 flex items-center space-x-1 transition-colors cursor-pointer"
+                            title="Open RAG Pipeline Inspector"
+                          >
+                            <Activity className="w-3 h-3" />
+                            <span>Inspect</span>
+                          </button>
+                        )}
+
+                        {/* Read Aloud TTS */}
                         <button
-                          onClick={() => setInspectorModalData(msg.rag_inspector || currentInspectorData)}
-                          className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/30 flex items-center space-x-1 transition-colors cursor-pointer"
-                          title="Open RAG Pipeline Inspector"
+                          onClick={() => handleReadAloud(msg.content, idx)}
+                          className={`p-1 rounded-lg hover:bg-slate-800 transition-colors ${
+                            isSpeakingIndex === idx ? "text-emerald-400 animate-pulse" : "text-slate-400 hover:text-slate-200"
+                          }`}
+                          title="Read aloud"
                         >
-                          <Activity className="w-3 h-3" />
-                          <span>Inspect</span>
+                          {isSpeakingIndex === idx ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
                         </button>
-                      )}
 
-                      {/* Read Aloud TTS */}
-                      <button
-                        onClick={() => handleReadAloud(msg.content, idx)}
-                        className={`p-1 rounded-lg hover:bg-slate-800 transition-colors ${
-                          isSpeakingIndex === idx ? "text-emerald-400 animate-pulse" : "text-slate-400 hover:text-slate-200"
-                        }`}
-                        title="Read aloud"
-                      >
-                        {isSpeakingIndex === idx ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
-                      </button>
-
-                      {/* Copy */}
-                      <button
-                        onClick={() => handleCopyMessage(msg.content, idx)}
-                        className="p-1 text-slate-400 hover:text-slate-200 rounded-lg hover:bg-slate-800 transition-colors"
-                        title="Copy text"
-                      >
-                        {copiedIndex === idx ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                      </button>
+                        {/* Copy */}
+                        <button
+                          onClick={() => handleCopyMessage(msg.content, idx)}
+                          className="p-1 text-slate-400 hover:text-slate-200 rounded-lg hover:bg-slate-800 transition-colors"
+                          title="Copy text"
+                        >
+                          {copiedIndex === idx ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {/* Content Body */}
-                {msg.type === "user" ? (
-                  <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-100">{msg.content}</p>
-                ) : (
-                  renderFormattedContent(msg)
-                )}
+                  {/* Content Body */}
+                  {isUser ? (
+                    <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-100">{msg.content}</p>
+                  ) : (
+                    renderFormattedContent(msg)
+                  )}
+                </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
 
         {/* Live Streaming Indicator */}
@@ -481,7 +671,7 @@ export default function Chat({
             <div className="max-w-3xl w-full rounded-2xl rounded-bl-none p-4 bg-[#0a0f18] border border-emerald-500/30 text-slate-200 shadow-xl">
               <div className="flex items-center space-x-2 pb-2 mb-2 border-b border-white/[0.08] text-[11px] font-mono text-emerald-400">
                 <Sparkles className="w-3.5 h-3.5 animate-spin text-emerald-400" />
-                <span>SYNTHESIZING ANSWER WITH STRICT CITATIONS...</span>
+                <span>SYNTHESIZING ANSWER WITH CITATIONS...</span>
               </div>
               {renderStreamingContent(currentStreamedAnswer)}
             </div>
@@ -501,14 +691,18 @@ export default function Chat({
         )}
 
         <form onSubmit={handleSubmit} className="max-w-3xl mx-auto flex items-center space-x-2">
-          {/* Glowing Voice Assistant Mic Trigger */}
+          {/* Glowing Voice Dictation Mic Trigger */}
           <button
             type="button"
-            onClick={() => setVoiceOpen(true)}
-            className="p-3 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 hover:text-emerald-300 border border-emerald-500/30 rounded-2xl transition-all glow-emerald-sm flex items-center justify-center cursor-pointer active:scale-95"
-            title="Voice query (Whisper Large v3)"
+            onClick={toggleLiveSpeech}
+            className={`p-3 rounded-2xl transition-all flex items-center justify-center cursor-pointer active:scale-95 ${
+              isLiveListening
+                ? "bg-rose-600 hover:bg-rose-500 text-white animate-pulse shadow-lg shadow-rose-600/40"
+                : "bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 hover:text-emerald-300 border border-emerald-500/30 glow-emerald-sm"
+            }`}
+            title={isLiveListening ? "Listening... Click to stop" : "Click to speak query (Live Speech-to-Text)"}
           >
-            <Mic className="w-5 h-5" />
+            {isLiveListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
           </button>
 
           {/* Text Input Box */}
@@ -518,13 +712,17 @@ export default function Chat({
             onChange={(e) => setInput(e.target.value)}
             disabled={selectedDocIds.length === 0 || isStreaming}
             placeholder={
-              selectedDocIds.length === 0
+              isLiveListening
+                ? "🎙️ Listening... Speak your question now"
+                : selectedDocIds.length === 0
                 ? "Select a document to ask questions..."
                 : isStreaming
                 ? "Synthesizing answer..."
                 : `Ask a question across ${selectedDocIds.length} document(s)...`
             }
-            className="flex-1 px-4 py-3 bg-[#0a0f18] border border-white/[0.08] focus:border-emerald-500 rounded-2xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none transition-colors disabled:opacity-50"
+            className={`flex-1 px-4 py-3 bg-[#0a0f18] border rounded-2xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none transition-colors disabled:opacity-50 ${
+              isLiveListening ? "border-rose-500 shadow-md shadow-rose-500/20" : "border-white/[0.08] focus:border-emerald-500"
+            }`}
           />
 
           {/* Emerald Send Button */}
@@ -538,10 +736,10 @@ export default function Chat({
         </form>
       </div>
 
-      {/* Voice Assistant Modal */}
+      {/* Voice Assistant Modal Fallback */}
       <VoiceAssistant
-        isOpen={voiceOpen}
-        onClose={() => setVoiceOpen(false)}
+        isOpen={voiceModalOpen}
+        onClose={() => setVoiceModalOpen(false)}
         onTranscriptComplete={handleVoiceTranscript}
       />
 
