@@ -1,29 +1,19 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { 
   Send, 
   Sparkles, 
   AlertCircle, 
-  FileText, 
   Mic, 
   MicOff,
-  Volume2, 
-  VolumeX, 
-  Activity, 
   Download, 
-  Copy, 
-  Check, 
-  Layers, 
-  Zap, 
   Settings2,
   Trash2,
   CheckCircle,
-  Play,
-  ArrowRight,
-  ShieldCheck,
-  ExternalLink
+  ArrowRight
 } from "lucide-react";
 import RagInspector from "./RagInspector";
 import VoiceAssistant from "./VoiceAssistant";
+import MessageCard from "./MessageCard";
 
 export default function Chat({
   messages,
@@ -66,9 +56,8 @@ export default function Chat({
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, currentStreamedAnswer]);
+  }, [messages.length, currentStreamedAnswer]);
 
-  // Clean up speech recognition on unmount
   useEffect(() => {
     return () => {
       if (recognitionRef.current) {
@@ -84,7 +73,6 @@ export default function Chat({
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
-      // If Web Speech API not supported in browser, open modal fallback
       setVoiceModalOpen(true);
       return;
     }
@@ -154,12 +142,15 @@ export default function Chat({
     setInput("");
   };
 
-  const handleVoiceTranscript = (text) => {
+  const handleVoiceTranscript = useCallback((text) => {
     setInput(text);
-  };
+  }, []);
 
-  // Text-To-Speech
-  const handleReadAloud = (text, index) => {
+  const handleInspect = useCallback((inspectorData) => {
+    setInspectorModalData(inspectorData);
+  }, []);
+
+  const handleReadAloud = useCallback((text, index) => {
     if (!synthRef.current) return;
 
     if (isSpeakingIndex === index) {
@@ -181,13 +172,17 @@ export default function Chat({
 
     setIsSpeakingIndex(index);
     synthRef.current.speak(utterance);
-  };
+  }, [isSpeakingIndex]);
 
-  const handleCopyMessage = (text, index) => {
+  const handleCopyMessage = useCallback((text, index) => {
     navigator.clipboard.writeText(text);
     setCopiedIndex(index);
     setTimeout(() => setCopiedIndex(null), 2000);
-  };
+  }, []);
+
+  const handleCitationClick = useCallback((citation) => {
+    setActiveCitation(citation);
+  }, [setActiveCitation]);
 
   const handleExportChat = () => {
     if (messages.length === 0) return;
@@ -210,176 +205,6 @@ export default function Chat({
     URL.revokeObjectURL(url);
   };
 
-  // Helper to parse bold, links, and inline citations inside a text snippet
-  const renderInlineStyles = (lineText, citations, keyPrefix) => {
-    const citationRegex = /\[SOURCE:\s*([a-zA-Z0-9_-]+)\s*\]/gi;
-    let parts = [];
-    let lastIdx = 0;
-    let match;
-
-    while ((match = citationRegex.exec(lineText)) !== null) {
-      const start = match.index;
-      const chunkId = match[1];
-
-      if (start > lastIdx) {
-        parts.push(lineText.substring(lastIdx, start));
-      }
-
-      const citeIndex = citations.findIndex(
-        (c) => c.chunk_id?.toLowerCase() === chunkId.trim().toLowerCase()
-      );
-
-      if (citeIndex !== -1) {
-        const citation = citations[citeIndex];
-        parts.push(
-          <button
-            key={`${keyPrefix}-cite-${chunkId}-${start}`}
-            onClick={() => setActiveCitation(citation)}
-            className="inline-flex items-center justify-center px-1.5 py-0.5 mx-0.5 text-[10px] font-bold bg-emerald-500/15 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/30 rounded-md cursor-pointer transition-all duration-200 align-super"
-            title={`${citation.doc_name} (Page ${citation.page})`}
-          >
-            [{citeIndex + 1}]
-          </button>
-        );
-      } else {
-        parts.push(
-          <span key={`${keyPrefix}-missing-${start}`} className="text-slate-500 text-[10px] mx-0.5 align-super">
-            [*]
-          </span>
-        );
-      }
-
-      lastIdx = citationRegex.lastIndex;
-    }
-
-    if (lastIdx < lineText.length) {
-      parts.push(lineText.substring(lastIdx));
-    }
-
-    // Now format bold text (**bold**) and markdown links [text](url)
-    return parts.map((part, pIdx) => {
-      if (typeof part !== "string") return part;
-
-      // Parse bold **text**
-      const boldParts = part.split(/(\*\*[^*]+\*\*)/g);
-      return boldParts.map((bPart, bIdx) => {
-        if (bPart.startsWith("**") && bPart.endsWith("**")) {
-          const boldContent = bPart.slice(2, -2);
-          return <strong key={`${keyPrefix}-b-${pIdx}-${bIdx}`} className="font-bold text-white">{boldContent}</strong>;
-        }
-
-        // Parse markdown links [title](url)
-        const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
-        let linkElements = [];
-        let linkLast = 0;
-        let lMatch;
-
-        while ((lMatch = linkRegex.exec(bPart)) !== null) {
-          if (lMatch.index > linkLast) {
-            linkElements.push(bPart.substring(linkLast, lMatch.index));
-          }
-          linkElements.push(
-            <a
-              key={`${keyPrefix}-link-${lMatch.index}`}
-              href={lMatch[2]}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-emerald-400 hover:text-emerald-300 underline inline-flex items-center space-x-0.5"
-            >
-              <span>{lMatch[1]}</span>
-              <ExternalLink className="w-2.5 h-2.5 ml-0.5 inline" />
-            </a>
-          );
-          linkLast = linkRegex.lastIndex;
-        }
-
-        if (linkLast < bPart.length) {
-          linkElements.push(bPart.substring(linkLast));
-        }
-
-        return linkElements.length > 0 ? linkElements : bPart;
-      });
-    });
-  };
-
-  // Rich Multi-Line Markdown Renderer
-  const renderFormattedContent = (msg) => {
-    const text = msg.content || "";
-    const citations = msg.citations || [];
-
-    if (!text) return null;
-
-    const lines = text.split("\n");
-    const renderedNodes = [];
-
-    lines.forEach((line, lineIdx) => {
-      const trimmed = line.trim();
-
-      // Heading 3: ### Title
-      if (trimmed.startsWith("### ")) {
-        const title = trimmed.replace(/^###\s+/, "");
-        renderedNodes.push(
-          <h3 key={`h3-${lineIdx}`} className="text-sm font-bold text-emerald-400 mt-4 mb-2 flex items-center space-x-2 border-b border-white/[0.06] pb-1">
-            <span>{renderInlineStyles(title, citations, `h3-${lineIdx}`)}</span>
-          </h3>
-        );
-      }
-      // Heading 2: ## Title
-      else if (trimmed.startsWith("## ")) {
-        const title = trimmed.replace(/^##\s+/, "");
-        renderedNodes.push(
-          <h2 key={`h2-${lineIdx}`} className="text-base font-bold text-white mt-4 mb-2 pb-1 border-b border-emerald-500/30">
-            {renderInlineStyles(title, citations, `h2-${lineIdx}`)}
-          </h2>
-        );
-      }
-      // Heading 1: # Title
-      else if (trimmed.startsWith("# ")) {
-        const title = trimmed.replace(/^#\s+/, "");
-        renderedNodes.push(
-          <h1 key={`h1-${lineIdx}`} className="text-lg font-extrabold text-white mt-4 mb-2">
-            {renderInlineStyles(title, citations, `h1-${lineIdx}`)}
-          </h1>
-        );
-      }
-      // Divider: ---
-      else if (trimmed === "---" || trimmed === "***") {
-        renderedNodes.push(
-          <hr key={`hr-${lineIdx}`} className="border-t border-white/[0.08] my-3" />
-        );
-      }
-      // Bullet list item: * or -
-      else if (trimmed.startsWith("* ") || trimmed.startsWith("- ")) {
-        const itemText = trimmed.replace(/^[*-\s]+/, "");
-        renderedNodes.push(
-          <div key={`li-${lineIdx}`} className="flex items-start space-x-2 my-1 text-slate-200 pl-1 text-sm leading-relaxed">
-            <span className="text-emerald-400 text-base leading-tight select-none">•</span>
-            <div className="flex-1">{renderInlineStyles(itemText, citations, `li-${lineIdx}`)}</div>
-          </div>
-        );
-      }
-      // Blank line
-      else if (!trimmed) {
-        renderedNodes.push(<div key={`sp-${lineIdx}`} className="h-2" />);
-      }
-      // Regular paragraph line
-      else {
-        renderedNodes.push(
-          <p key={`p-${lineIdx}`} className="text-sm text-slate-200 leading-relaxed my-1">
-            {renderInlineStyles(line, citations, `p-${lineIdx}`)}
-          </p>
-        );
-      }
-    });
-
-    return <div className="space-y-0.5 text-left">{renderedNodes}</div>;
-  };
-
-  const renderStreamingContent = (text) => {
-    const cleanText = text.replace(/\[SOURCE:\s*[a-zA-Z0-9_-]+\s*\]/gi, "");
-    return <div className="whitespace-pre-wrap leading-relaxed text-sm text-slate-200 text-left">{cleanText}</div>;
-  };
-
   const quickPrompts = [
     "Summarize the core objectives and findings in detail.",
     "Extract key metrics, financial figures, and data tables.",
@@ -392,7 +217,7 @@ export default function Chat({
       {/* Top Model Switcher & Toolbar */}
       <div className="px-5 py-3 border-b border-white/[0.08] bg-[#070c14]/90 backdrop-blur-md flex items-center justify-between z-10 flex-wrap gap-2">
         <div className="flex items-center space-x-3">
-          {/* Provider/Model Selector */}
+          {/* Provider / Model Switcher */}
           <div className="flex items-center space-x-1 bg-slate-950/80 border border-white/[0.08] rounded-xl p-1">
             <button
               onClick={() => {
@@ -587,82 +412,19 @@ export default function Chat({
             </div>
           </div>
         ) : (
-          messages.map((msg, idx) => {
-            const isUser = msg.type === "user" || msg.role === "user";
-            return (
-              <div
-                key={idx}
-                className={`flex flex-col ${
-                  isUser ? "items-end" : "items-start"
-                }`}
-              >
-                <div
-                  className={`max-w-3xl rounded-2xl p-4 shadow-lg transition-all ${
-                    isUser
-                      ? "bg-slate-900 border border-emerald-500/30 text-white rounded-br-none"
-                      : "bg-[#0a0f18] border border-white/[0.08] text-slate-200 rounded-bl-none w-full"
-                  }`}
-                >
-                  {/* Assistant Message Header */}
-                  {!isUser && (
-                    <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-white/[0.08] text-[11px] font-mono text-slate-400">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-emerald-400 font-bold tracking-wider">
-                          {msg.provider ? msg.provider.toUpperCase() : "DOCUMIND"}
-                        </span>
-                        {msg.cache_hit && (
-                          <span className="text-emerald-400 bg-emerald-500/10 px-1.5 py-0.2 rounded border border-emerald-500/30">
-                            ⚡ CACHE HIT (&lt;15ms)
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="flex items-center space-x-1.5">
-                        {/* RAG Inspector Button */}
-                        {(msg.rag_inspector || currentInspectorData) && (
-                          <button
-                            onClick={() => setInspectorModalData(msg.rag_inspector || currentInspectorData)}
-                            className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/30 flex items-center space-x-1 transition-colors cursor-pointer"
-                            title="Open RAG Pipeline Inspector"
-                          >
-                            <Activity className="w-3 h-3" />
-                            <span>Inspect</span>
-                          </button>
-                        )}
-
-                        {/* Read Aloud TTS */}
-                        <button
-                          onClick={() => handleReadAloud(msg.content, idx)}
-                          className={`p-1 rounded-lg hover:bg-slate-800 transition-colors ${
-                            isSpeakingIndex === idx ? "text-emerald-400 animate-pulse" : "text-slate-400 hover:text-slate-200"
-                          }`}
-                          title="Read aloud"
-                        >
-                          {isSpeakingIndex === idx ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
-                        </button>
-
-                        {/* Copy */}
-                        <button
-                          onClick={() => handleCopyMessage(msg.content, idx)}
-                          className="p-1 text-slate-400 hover:text-slate-200 rounded-lg hover:bg-slate-800 transition-colors"
-                          title="Copy text"
-                        >
-                          {copiedIndex === idx ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Content Body */}
-                  {isUser ? (
-                    <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-100">{msg.content}</p>
-                  ) : (
-                    renderFormattedContent(msg)
-                  )}
-                </div>
-              </div>
-            );
-          })
+          messages.map((msg, idx) => (
+            <MessageCard
+              key={`msg-${idx}`}
+              msg={msg}
+              index={idx}
+              isSpeaking={isSpeakingIndex === idx}
+              isCopied={copiedIndex === idx}
+              onInspect={handleInspect}
+              onReadAloud={handleReadAloud}
+              onCopy={handleCopyMessage}
+              onCitationClick={handleCitationClick}
+            />
+          ))
         )}
 
         {/* Live Streaming Indicator */}
@@ -673,7 +435,9 @@ export default function Chat({
                 <Sparkles className="w-3.5 h-3.5 animate-spin text-emerald-400" />
                 <span>SYNTHESIZING ANSWER WITH CITATIONS...</span>
               </div>
-              {renderStreamingContent(currentStreamedAnswer)}
+              <div className="whitespace-pre-wrap leading-relaxed text-sm text-slate-200 text-left">
+                {currentStreamedAnswer.replace(/\[SOURCE:\s*[a-zA-Z0-9_-]+\s*\]/gi, "")}
+              </div>
             </div>
           </div>
         )}
