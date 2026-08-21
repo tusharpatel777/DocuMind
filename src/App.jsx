@@ -528,8 +528,8 @@ export default function App() {
                     {/* Delete Conversation Trash Icon */}
                     <button
                       onClick={(e) => handleDeleteSession(e, sess.session_id)}
-                      className="opacity-0 group-hover:opacity-100 p-1 hover:bg-rose-500/20 text-slate-500 hover:text-rose-400 rounded-lg transition-all"
-                      title="Delete this conversation"
+                      className="p-1.5 hover:bg-rose-500/20 text-slate-500 hover:text-rose-400 rounded-lg transition-all flex items-center justify-center flex-shrink-0 cursor-pointer"
+                      title="Delete conversation"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
