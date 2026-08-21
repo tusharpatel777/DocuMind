@@ -192,7 +192,6 @@ export default function App() {
 
   const handleDeleteSession = async (e, sessId) => {
     if (e) e.stopPropagation();
-    if (!window.confirm("Are you sure you want to delete this conversation?")) return;
     try {
       await deleteSession(sessId);
       const remaining = sessions.filter((s) => s.session_id !== sessId);
@@ -351,16 +350,14 @@ export default function App() {
   };
 
   const handleLogout = () => {
-    if (window.confirm("Are you sure you want to sign out?")) {
-      localStorage.removeItem("documind_user_profile");
-      localStorage.removeItem("documind_user_id");
-      setUser(null);
-      setUserId("");
-      setSessions([]);
-      setDocuments([]);
-      setMessages([]);
-      setSelectedDocIds([]);
-    }
+    localStorage.removeItem("documind_user_profile");
+    localStorage.removeItem("documind_user_id");
+    setUser(null);
+    setUserId("");
+    setSessions([]);
+    setDocuments([]);
+    setMessages([]);
+    setSelectedDocIds([]);
   };
 
   if (!user) {
