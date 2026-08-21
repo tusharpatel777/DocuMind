@@ -206,7 +206,7 @@ export default function Chat({
             <button
               onClick={() => {
                 setSelectedProvider("gemini");
-                setSelectedModel("gemini-2.0-flash");
+                setSelectedModel("gemini-1.5-flash");
               }}
               className={`px-3 py-1 rounded-lg text-xs font-medium transition-all flex items-center space-x-1 ${
                 selectedProvider === "gemini"
@@ -215,7 +215,7 @@ export default function Chat({
               }`}
             >
               <Sparkles className="w-3 h-3 text-amber-300" />
-              <span>Gemini 2.0 Flash</span>
+              <span>Gemini Flash</span>
             </button>
           </div>
 
