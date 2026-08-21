@@ -4,12 +4,13 @@ import {
   Sparkles, 
   AlertCircle, 
   Mic, 
-  MicOff,
+  MicOff, 
   Download, 
-  Settings2,
-  Trash2,
-  CheckCircle,
-  ArrowRight
+  Settings2, 
+  Trash2, 
+  CheckCircle, 
+  ArrowRight,
+  Zap
 } from "lucide-react";
 import RagInspector from "./RagInspector";
 import VoiceAssistant from "./VoiceAssistant";
@@ -192,7 +193,7 @@ export default function Chat({
       if (isUser) {
         mdContent += `### 👤 User:\n${m.content}\n\n`;
       } else {
-        mdContent += `### 🤖 DocuMind AI (${m.provider || "groq"}):\n${m.content}\n\n`;
+        mdContent += `### 🤖 DocuMind AI:\n${m.content}\n\n`;
       }
     });
 
@@ -214,23 +215,24 @@ export default function Chat({
 
   return (
     <div className="flex flex-col h-full bg-[#06090e] relative overflow-hidden">
-      {/* Top Model Switcher & Toolbar */}
+      {/* Top Engine Selector & Toolbar */}
       <div className="px-5 py-3 border-b border-white/[0.08] bg-[#070c14]/90 backdrop-blur-md flex items-center justify-between z-10 flex-wrap gap-2">
         <div className="flex items-center space-x-3">
-          {/* Provider / Model Switcher */}
+          {/* Intelligence Mode Switcher */}
           <div className="flex items-center space-x-1 bg-slate-950/80 border border-white/[0.08] rounded-xl p-1">
             <button
               onClick={() => {
                 setSelectedProvider("groq");
                 setSelectedModel("llama-3.3-70b-versatile");
               }}
-              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all flex items-center space-x-1 ${
                 selectedProvider === "groq"
                   ? "bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20"
                   : "text-slate-400 hover:text-slate-200"
               }`}
             >
-              Groq Llama 3.3
+              <Zap className="w-3 h-3" />
+              <span>Fast Mode</span>
             </button>
             <button
               onClick={() => {
@@ -244,7 +246,7 @@ export default function Chat({
               }`}
             >
               <Sparkles className="w-3 h-3 text-emerald-950" />
-              <span>Gemini 3.6 Flash</span>
+              <span>Deep Reasoning</span>
             </button>
           </div>
 
@@ -341,20 +343,20 @@ export default function Chat({
       {/* Messages Scroll Area */}
       <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-6 space-y-6">
         {messages.length === 0 && !isStreaming ? (
-          /* InterviewOS Reference Hero Screen */
+          /* Enterprise Knowledge Base Hero Screen */
           <div className="max-w-4xl mx-auto my-auto pt-4 pb-8 flex flex-col items-center text-center animate-fadeIn">
             <div className="w-full bg-[#0a0f18]/80 bg-grid-pattern border border-white/[0.08] rounded-3xl p-6 sm:p-10 shadow-2xl relative overflow-hidden">
               <div className="absolute top-0 right-1/4 w-80 h-32 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
               <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[11px] font-mono font-medium text-emerald-400 mb-6">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                <span>• THE RESEARCH ROOM FOR AMBITIOUS ENGINEERS</span>
+                <span>• ENTERPRISE CITATION-GROUNDED INTELLIGENCE</span>
               </div>
 
               <h2 className="text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-white leading-[1.15] mb-4">
-                Research like it's your <br />
+                Research across your <br />
                 <span className="text-emerald-400 font-serif-accent italic font-normal text-3xl sm:text-5xl md:text-6xl">
-                  dream company's
+                  enterprise
                 </span>{" "}
                 knowledge base.
               </h2>
@@ -374,7 +376,7 @@ export default function Chat({
                 </div>
                 <div className="flex items-center space-x-2 p-2.5 bg-slate-900/60 border border-white/[0.06] rounded-xl text-xs text-slate-200">
                   <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span className="font-medium">Gemini 3.6 Flash</span>
+                  <span className="font-medium">Zero Hallucination</span>
                 </div>
                 <div className="flex items-center space-x-2 p-2.5 bg-slate-900/60 border border-white/[0.06] rounded-xl text-xs text-slate-200">
                   <CheckCircle className="w-4 h-4 text-amber-400 shrink-0" />
@@ -382,7 +384,7 @@ export default function Chat({
                 </div>
                 <div className="flex items-center space-x-2 p-2.5 bg-slate-900/60 border border-white/[0.06] rounded-xl text-xs text-slate-200">
                   <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span className="font-medium">Brutally Grounded</span>
+                  <span className="font-medium">Citation Grounded</span>
                 </div>
               </div>
 

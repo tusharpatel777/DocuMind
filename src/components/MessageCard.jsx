@@ -308,7 +308,7 @@ const MessageCard = memo(function MessageCard({
           <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-white/[0.08] text-[11px] font-mono text-slate-400">
             <div className="flex items-center space-x-2">
               <span className="text-emerald-400 font-bold tracking-wider">
-                {msg.provider ? msg.provider.toUpperCase() : "DOCUMIND"}
+                DOCUMIND AI
               </span>
               {msg.cache_hit && (
                 <span className="text-emerald-400 bg-emerald-500/10 px-1.5 py-0.2 rounded border border-emerald-500/30">

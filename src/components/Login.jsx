@@ -52,7 +52,7 @@ export default function Login({ onLoginSuccess }) {
       {/* Grid Pattern */}
       <div className="absolute inset-0 bg-grid-pattern opacity-40 pointer-events-none" />
 
-      {/* Main 2-Column Container (InterviewOS Reference Layout) */}
+      {/* Main 2-Column Container */}
       <div className="relative z-10 w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
         {/* Left Hero Column */}
         <div className="lg:col-span-7 space-y-6 text-left">
@@ -64,26 +64,26 @@ export default function Login({ onLoginSuccess }) {
 
           {/* Headline with Serif Italic Accent */}
           <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-white leading-[1.1]">
-            Research like it's your <br />
+            Research across your <br />
             <span className="text-emerald-400 font-serif-accent italic font-normal text-5xl sm:text-7xl">
-              dream company's
+              enterprise
             </span>{" "}
-            interview.
+            knowledge base.
           </h1>
 
           {/* Feature Bullet Points with Emerald Checks */}
           <div className="space-y-3 pt-2 text-sm text-slate-300">
             <div className="flex items-center space-x-3">
               <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />
-              <span>Real Voice Speech & Studio Whisper STT</span>
+              <span>Real Voice Speech & Studio Dictation</span>
             </div>
             <div className="flex items-center space-x-3">
               <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />
-              <span>Gemini 3.6 Flash & Groq Llama 3.3 Multi-Model</span>
+              <span>Zero Hallucination Citation Verification</span>
             </div>
             <div className="flex items-center space-x-3">
               <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />
-              <span>Small-to-Big Parent Context Retrieval</span>
+              <span>Small-to-Big Hierarchical Retrieval</span>
             </div>
             <div className="flex items-center space-x-3">
               <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />
@@ -92,7 +92,7 @@ export default function Login({ onLoginSuccess }) {
           </div>
         </div>
 
-        {/* Right Sign-in Card Column (Reference Card Style) */}
+        {/* Right Sign-in Card Column */}
         <div className="lg:col-span-5">
           <div className="bg-[#0b1019]/90 bg-grid-pattern border border-white/10 rounded-3xl p-8 sm:p-10 shadow-2xl relative overflow-hidden backdrop-blur-xl glow-emerald-card">
             {/* Glow ambient */}
@@ -111,7 +111,7 @@ export default function Login({ onLoginSuccess }) {
               </div>
             )}
 
-            {/* Google Sign-in Pill Button (Reference Image 2 Style) */}
+            {/* Google Sign-in Pill Button */}
             <button
               onClick={() => login()}
               disabled={isLoading}
@@ -143,7 +143,7 @@ export default function Login({ onLoginSuccess }) {
             </button>
 
             <p className="text-[10px] text-slate-500 text-center mt-6 leading-relaxed">
-              By continuing, you agree to access citation-grounded RAG intelligence powered by Google Gemini 3.6 Flash & Groq Llama 3.3.
+              By continuing, you agree to access citation-grounded intelligence powered by DocuMind AI.
             </p>
           </div>
         </div>
