@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useGoogleLogin } from "@react-oauth/google";
-import { Brain, Shield, Sparkles, FileText, Lock, ArrowRight } from "lucide-react";
+import { Mic, CheckCircle, Sparkles, ArrowRight, ShieldCheck, Lock } from "lucide-react";
 
 export default function Login({ onLoginSuccess }) {
   const [error, setError] = useState("");
@@ -39,109 +39,115 @@ export default function Login({ onLoginSuccess }) {
     },
     onError: (err) => {
       console.error("Google OAuth Login Failed:", err);
-      setError("Sign-In attempt was cancelled or failed. Please check your credentials.");
+      setError("Sign-In attempt was cancelled or failed. Please try again.");
     },
   });
 
   return (
-    <div className="h-[100dvh] w-screen bg-[#060a12] text-slate-150 flex flex-col justify-between relative font-sans overflow-hidden">
-      <div className="absolute top-1/4 left-1/4 w-[700px] h-[700px] bg-emerald-500/5 rounded-full blur-[150px] pointer-events-none pulse-glow-emerald"></div>
-      <div className="absolute bottom-1/4 right-1/4 w-[600px] h-[600px] bg-teal-500/5 rounded-full blur-[130px] pointer-events-none"></div>
+    <div className="h-[100dvh] w-screen bg-[#06090e] text-slate-100 flex items-center justify-center p-6 relative font-sans overflow-hidden bg-radial-glow">
+      {/* Ambient background glows */}
+      <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-emerald-500/10 rounded-full blur-[150px] pointer-events-none pulse-glow-emerald" />
+      <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-emerald-950/25 rounded-full blur-[130px] pointer-events-none" />
 
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#0c1626_1px,transparent_1px),linear-gradient(to_bottom,#0c1626_1px,transparent_1px)] bg-[size:5rem_5rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-25"></div>
+      {/* Grid Pattern */}
+      <div className="absolute inset-0 bg-grid-pattern opacity-40 pointer-events-none" />
 
-      <div className="absolute top-[20%] left-[15%] text-slate-800 opacity-20 animate-bounce pointer-events-none" style={{ animationDuration: '6s' }}>
-        <FileText className="w-12 h-12" />
-      </div>
-      <div className="absolute bottom-[25%] left-[20%] text-slate-800 opacity-20 animate-pulse pointer-events-none" style={{ animationDuration: '4s' }}>
-        <Shield className="w-10 h-10" />
-      </div>
-      <div className="absolute top-[30%] right-[15%] text-slate-800 opacity-20 animate-pulse pointer-events-none" style={{ animationDuration: '5s' }}>
-        <Lock className="w-10 h-10" />
-      </div>
-      <div className="absolute bottom-[20%] right-[20%] text-slate-800 opacity-20 animate-bounce pointer-events-none" style={{ animationDuration: '7s' }}>
-        <Sparkles className="w-12 h-12" />
-      </div>
-
-      {/* Header / Nav */}
-      <header className="relative z-20 w-full px-4 sm:px-8 py-4 sm:py-6 flex items-center justify-between bg-slate-950/10 backdrop-blur-md border-b border-slate-900/55">
-        <div className="flex items-center space-x-3">
-          <div className="p-2.5 bg-gradient-to-tr from-emerald-500 to-teal-500 rounded-xl shadow-lg border border-emerald-400/20">
-            <Brain className="w-5 h-5 text-slate-950 font-bold" />
+      {/* Main 2-Column Container (InterviewOS Reference Layout) */}
+      <div className="relative z-10 w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+        {/* Left Hero Column */}
+        <div className="lg:col-span-7 space-y-6 text-left">
+          {/* Logo Badge */}
+          <div className="inline-flex items-center space-x-2.5 px-3 py-1.5 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 glow-emerald-sm">
+            <Mic className="w-4 h-4 fill-emerald-400/20" />
+            <span className="text-sm font-bold text-white tracking-tight">DocuMind <span className="text-emerald-400 font-normal italic font-serif-accent text-base">AI 2.0</span></span>
           </div>
-          <span className="text-lg font-bold tracking-tight text-white flex items-center">
-            DocuMind <span className="text-emerald-400 ml-1.5 text-[10px] font-semibold px-2 py-0.5 bg-emerald-950/40 rounded-full border border-emerald-500/20">AI</span>
-          </span>
-        </div>
-        <div className="hidden sm:flex items-center space-x-2 bg-slate-900/40 px-3.5 py-1.5 rounded-full border border-slate-850 text-xs text-slate-400">
-          <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping"></span>
-          <span>HuggingFace Space Active</span>
-        </div>
-      </header>
 
-      <main className="relative z-10 flex-1 flex flex-col items-center justify-center text-center px-6 max-w-4xl mx-auto w-full">
-        <div className="inline-flex items-center space-x-2 bg-slate-950/50 px-4 py-1.5 rounded-full border border-slate-850 text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-6">
-          <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
-          <span>SYSTEM OPERATIONAL • V2.5 AI LIVE</span>
-        </div>
+          {/* Headline with Serif Italic Accent */}
+          <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-white leading-[1.1]">
+            Research like it's your <br />
+            <span className="text-emerald-400 font-serif-accent italic font-normal text-5xl sm:text-7xl">
+              dream company's
+            </span>{" "}
+            interview.
+          </h1>
 
-        <h1 className="text-4xl sm:text-7xl font-extrabold tracking-tight text-white leading-none">
-          Analyze. <br className="sm:hidden" />
-          <span className="bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 bg-clip-text text-transparent">
-            Understand.
-          </span>
-        </h1>
-
-        <p className="text-sm sm:text-base text-slate-450 mt-6 max-w-lg leading-relaxed">
-          The next-generation document intelligence platform. Chat, summarize, and cross-examine your files using hybrid search and citation-grounded RAG.
-        </p>
-
-        {error && (
-          <div className="w-full max-w-md mt-6 p-3.5 bg-red-950/30 border border-red-500/30 rounded-2xl text-red-400 text-xs text-center">
-            {error}
+          {/* Feature Bullet Points with Emerald Checks */}
+          <div className="space-y-3 pt-2 text-sm text-slate-300">
+            <div className="flex items-center space-x-3">
+              <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />
+              <span>Real Voice Speech & Studio Whisper STT</span>
+            </div>
+            <div className="flex items-center space-x-3">
+              <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />
+              <span>Gemini 3.6 Flash & Groq Llama 3.3 Multi-Model</span>
+            </div>
+            <div className="flex items-center space-x-3">
+              <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />
+              <span>Small-to-Big Parent Context Retrieval</span>
+            </div>
+            <div className="flex items-center space-x-3">
+              <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />
+              <span>Mathematically citation-grounded answers</span>
+            </div>
           </div>
-        )}
-
-        <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 w-full max-w-md">
-          <button
-            onClick={() => login()}
-            disabled={isLoading}
-            className="w-full sm:w-auto px-8 py-4 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-450 hover:text-emerald-300 border border-emerald-550/25 hover:border-emerald-400/50 rounded-2xl font-bold text-sm flex items-center justify-center space-x-3.5 transition-all duration-300 shadow-[0_0_15px_rgba(16,185,129,0.05)] hover:shadow-[0_0_20px_rgba(16,185,129,0.18)] active:scale-[0.97] cursor-pointer relative overflow-hidden group backdrop-blur-md"
-          >
-            {/* Shimmer light effect */}
-            <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-emerald-400/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out" />
-            
-            <svg className="w-5 h-5 fill-current text-emerald-450 group-hover:text-emerald-300 transition-colors" viewBox="0 0 24 24">
-              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
-              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
-            </svg>
-            <span className="tracking-wide">
-              {isLoading ? "Connecting Account..." : "Launch with Google"}
-            </span>
-          </button>
-
-          <button
-            onClick={() => login()}
-            className="w-full sm:w-auto px-8 py-4 bg-slate-950/20 hover:bg-slate-950/45 text-slate-400 hover:text-white rounded-2xl font-bold text-sm border border-slate-900 hover:border-slate-800 transition-all duration-300 active:scale-[0.97] cursor-pointer flex items-center justify-center space-x-2 backdrop-blur-md"
-          >
-            <span>Learn More</span>
-            <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-white transition-colors" />
-          </button>
         </div>
-      </main>
 
-      {/* Footer Branding */}
-      <footer className="relative z-10 w-full py-4 sm:py-8 text-center text-[10px] tracking-[0.2em] text-slate-650 uppercase font-semibold border-t border-slate-950/60">
-        <div className="flex items-center justify-center space-x-4">
-          <span>Secure</span>
-          <span className="w-1 h-1 bg-slate-800 rounded-full"></span>
-          <span>Fast</span>
-          <span className="w-1 h-1 bg-slate-800 rounded-full"></span>
-          <span>Intelligent</span>
+        {/* Right Sign-in Card Column (Reference Card Style) */}
+        <div className="lg:col-span-5">
+          <div className="bg-[#0b1019]/90 bg-grid-pattern border border-white/10 rounded-3xl p-8 sm:p-10 shadow-2xl relative overflow-hidden backdrop-blur-xl glow-emerald-card">
+            {/* Glow ambient */}
+            <div className="absolute top-0 right-0 w-48 h-24 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
+
+            <h2 className="text-2xl font-bold text-white mb-2">
+              Sign in to start
+            </h2>
+            <p className="text-xs text-slate-400 leading-relaxed mb-8">
+              Your research documents, verified citations, and conversation history are automatically saved to your workspace.
+            </p>
+
+            {error && (
+              <div className="mb-6 p-3 bg-rose-950/40 border border-rose-500/30 rounded-xl text-rose-400 text-xs text-left">
+                {error}
+              </div>
+            )}
+
+            {/* Google Sign-in Pill Button (Reference Image 2 Style) */}
+            <button
+              onClick={() => login()}
+              disabled={isLoading}
+              className="w-full p-3.5 bg-slate-900 hover:bg-slate-850 text-white rounded-2xl border border-white/15 hover:border-emerald-500/50 flex items-center justify-between transition-all duration-200 shadow-lg group cursor-pointer active:scale-98"
+            >
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center text-xs font-bold text-white">
+                  G
+                </div>
+                <div className="text-left">
+                  <span className="text-xs font-semibold text-white block">
+                    {isLoading ? "Connecting Account..." : "Continue with Google"}
+                  </span>
+                  <span className="text-[10px] text-slate-400 block">
+                    Secure workspace authentication
+                  </span>
+                </div>
+              </div>
+
+              {/* Google Brand SVG */}
+              <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center shadow-sm">
+                <svg className="w-4 h-4" viewBox="0 0 24 24">
+                  <path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.7 14.8 1 12 1 7.7 1 4 3.5 2.2 7.1l3.7 2.8C6.8 6.9 9.2 5 12 5z" />
+                  <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.8z" />
+                  <path fill="#FBBC05" d="M5.9 14.1c-.2-.7-.4-1.4-.4-2.1s.2-1.4.4-2.1L2.2 7.1C1.4 8.6 1 10.2 1 12s.4 3.4 1.2 4.9l3.7-2.8z" />
+                  <path fill="#34A853" d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-2.8 0-5.2-1.9-6.1-4.5L2.2 16.6C4 20.2 7.7 23 12 23z" />
+                </svg>
+              </div>
+            </button>
+
+            <p className="text-[10px] text-slate-500 text-center mt-6 leading-relaxed">
+              By continuing, you agree to access citation-grounded RAG intelligence powered by Google Gemini 3.6 Flash & Groq Llama 3.3.
+            </p>
+          </div>
         </div>
-      </footer>
+      </div>
     </div>
   );
 }

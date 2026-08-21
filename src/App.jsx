@@ -10,7 +10,14 @@ import {
   MessageSquare, 
   Menu, 
   FolderOpen,
-  Activity
+  Activity,
+  Mic,
+  CheckCircle,
+  Play,
+  Layers,
+  ChevronRight,
+  Flame,
+  Zap
 } from "lucide-react";
 import Uploader from "./components/Uploader";
 import DocumentList from "./components/DocumentList";
@@ -82,14 +89,16 @@ export default function App() {
     }
   };
 
-  // Load chat sessions
+  // Load chat sessions (always sorted with newest on top)
   const loadSessions = async (targetSessionId = null, targetUserId = userId) => {
     if (!targetUserId) return;
     try {
       const data = await fetchSessions(targetUserId);
-      setSessions(data);
-      if (data.length > 0) {
-        const activeId = targetSessionId || data[0].session_id;
+      // Ensure sessions are strictly sorted descending by created_at
+      const sorted = [...data].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+      setSessions(sorted);
+      if (sorted.length > 0) {
+        const activeId = targetSessionId || sorted[0].session_id;
         handleSelectSession(activeId);
       } else {
         handleNewChat();
@@ -162,24 +171,32 @@ export default function App() {
     setActiveCitation(null);
     setError("");
     setMobileMenuOpen(false);
+
+    // Prepend new conversation placeholder immediately to the top of sessions
+    setSessions((prev) => [
+      {
+        session_id: newId,
+        summary: "New Conversation",
+        created_at: new Date().toISOString(),
+        doc_ids: selectedDocIds
+      },
+      ...prev.filter((s) => s.session_id !== newId)
+    ]);
   };
 
   const handleDeleteSession = async (e, sessId) => {
-    e.stopPropagation();
-    if (!window.confirm("Are you sure you want to delete this chat session?")) return;
+    if (e) e.stopPropagation();
+    if (!window.confirm("Are you sure you want to delete this conversation?")) return;
     try {
       await deleteSession(sessId);
+      const remaining = sessions.filter((s) => s.session_id !== sessId);
+      setSessions(remaining);
       if (sessId === sessionId) {
-        const remaining = sessions.filter((s) => s.session_id !== sessId);
         if (remaining.length > 0) {
           handleSelectSession(remaining[0].session_id);
-          setSessions(remaining);
         } else {
           handleNewChat();
-          setSessions([]);
         }
-      } else {
-        setSessions((prev) => prev.filter((s) => s.session_id !== sessId));
       }
     } catch (err) {
       console.error(err);
@@ -236,6 +253,18 @@ export default function App() {
 
     setMessages((prev) => [...prev, { type: "user", content: queryText }]);
 
+    // Update conversation title at the top of the session list immediately
+    const summaryTitle = queryText.length > 32 ? queryText.substring(0, 32) + "..." : queryText;
+    setSessions((prev) => [
+      {
+        session_id: sessionId,
+        summary: summaryTitle,
+        created_at: new Date().toISOString(),
+        doc_ids: selectedDocIds
+      },
+      ...prev.filter((s) => s.session_id !== sessionId)
+    ]);
+
     let accumulatedAnswer = "";
     let finalCitations = [];
     let inspectorDataReceived = null;
@@ -290,7 +319,8 @@ export default function App() {
 
     try {
       const data = await fetchSessions(userId);
-      setSessions(data);
+      const sorted = [...data].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+      setSessions(sorted);
     } catch (err) {
       console.error(err);
     }
@@ -332,37 +362,58 @@ export default function App() {
   }
 
   return (
-    <div className="relative h-[100dvh] w-full bg-[#070b13] text-slate-100 flex flex-col font-sans overflow-hidden">
-      {/* Background glow accents */}
-      <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-indigo-500/5 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-emerald-500/5 rounded-full blur-[100px] pointer-events-none" />
+    <div className="relative h-[100dvh] w-full bg-[#06090e] text-slate-100 flex flex-col font-sans overflow-hidden bg-radial-glow">
+      {/* Background ambient neon glows */}
+      <div className="absolute top-0 left-1/3 w-[600px] h-[350px] bg-emerald-500/10 rounded-full blur-[140px] pointer-events-none pulse-glow-emerald" />
+      <div className="absolute bottom-0 right-1/4 w-[450px] h-[450px] bg-emerald-950/20 rounded-full blur-[120px] pointer-events-none" />
 
-      {/* Main App Header */}
-      <header className="flex-shrink-0 border-b border-slate-850 bg-[#070b13]/90 backdrop-blur-md z-50 px-4 sm:px-6 py-3.5 flex items-center justify-between">
-        <div className="flex items-center space-x-2 sm:space-x-3">
+      {/* Main Reference-Style Header */}
+      <header className="flex-shrink-0 border-b border-white/[0.08] bg-[#06090e]/90 backdrop-blur-xl z-50 px-4 sm:px-6 py-3 flex items-center justify-between">
+        {/* Left: Brand Logo & Title */}
+        <div className="flex items-center space-x-3">
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 text-slate-400 hover:text-white bg-slate-900/40 rounded-xl border border-slate-800 transition cursor-pointer"
+            className="md:hidden p-2 text-slate-400 hover:text-white bg-slate-900/60 rounded-xl border border-white/10 transition cursor-pointer"
             title="Toggle Menu"
           >
             <Menu className="w-4 h-4" />
           </button>
 
-          <div className="p-2 bg-gradient-to-tr from-indigo-600 to-emerald-500 rounded-xl shadow-lg border border-indigo-400/20 flex items-center justify-center">
-            <Brain className="w-5 h-5 text-white font-bold" />
+          {/* Glowing Emerald Icon (InterviewOS Reference Style) */}
+          <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 glow-emerald-sm transition-transform hover:scale-105">
+            <Mic className="w-4 h-4 fill-emerald-400/20" />
           </div>
+
           <div>
-            <h1 className="text-sm sm:text-base font-bold tracking-tight text-white flex items-center">
-              DocuMind <span className="text-indigo-400 ml-1.5 text-[10px] sm:text-xs font-semibold px-2 py-0.5 bg-indigo-950/40 rounded-full border border-indigo-500/30">AI 2.0</span>
-            </h1>
-            <p className="text-[9px] sm:text-[10px] text-slate-400 hidden md:block">Voice-Enabled Multi-Modal RAG Platform</p>
+            <div className="flex items-center space-x-2">
+              <h1 className="text-base font-bold tracking-tight text-white flex items-center">
+                DocuMind <span className="text-emerald-400 ml-1 font-serif-accent italic font-normal text-lg">AI 2.0</span>
+              </h1>
+              <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5 animate-pulse" />
+                Live Grounded
+              </span>
+            </div>
+            <p className="text-[10px] text-slate-400 hidden md:block">
+              Interactive Citation-Grounded Research Engine
+            </p>
           </div>
         </div>
 
+        {/* Center/Right: Badges, Actions & Start Q&A Button */}
         <div className="flex items-center space-x-2 sm:space-x-3">
+          {/* Quick Stats / Badges */}
+          <div className="hidden xl:flex items-center space-x-2 text-xs text-slate-300 bg-slate-900/80 border border-white/[0.08] px-3 py-1.5 rounded-xl">
+            <Flame className="w-3.5 h-3.5 text-amber-400" />
+            <span className="font-mono font-semibold text-white">RRF k=60</span>
+            <span className="text-slate-600">|</span>
+            <Zap className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="font-mono text-emerald-400">&lt;15ms Cache</span>
+          </div>
+
           <button
             onClick={() => setMobileLibraryOpen(!mobileLibraryOpen)}
-            className="lg:hidden p-2 text-slate-400 hover:text-indigo-400 bg-slate-900/40 rounded-xl border border-slate-800 transition cursor-pointer"
+            className="lg:hidden p-2 text-slate-400 hover:text-emerald-400 bg-slate-900/60 rounded-xl border border-white/10 transition"
             title="Open Document Library"
           >
             <FolderOpen className="w-4 h-4" />
@@ -370,33 +421,40 @@ export default function App() {
 
           <button
             onClick={handleOpenAnalytics}
-            className="hidden sm:flex text-xs font-medium text-slate-300 hover:text-white bg-indigo-950/20 hover:bg-indigo-950/40 border border-indigo-500/20 px-3.5 py-1.5 rounded-xl transition items-center space-x-1.5 cursor-pointer"
+            className="hidden sm:flex text-xs font-medium text-slate-300 hover:text-white bg-slate-900/80 hover:bg-slate-850 border border-white/[0.08] px-3 py-1.5 rounded-xl transition items-center space-x-1.5"
           >
-            <Activity className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
+            <Activity className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
             <span>Analytics</span>
           </button>
 
+          {/* Primary Action Button (Reference Style Green Pill) */}
+          <button
+            onClick={handleNewChat}
+            className="px-3.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl shadow-lg shadow-emerald-500/25 flex items-center space-x-1.5 transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
+          >
+            <Play className="w-3.5 h-3.5 fill-slate-950" />
+            <span>New Chat</span>
+          </button>
+
+          {/* User Profile Avatar */}
           {user && (
-            <div className="hidden md:flex items-center space-x-2 sm:space-x-3 bg-slate-900/80 px-2.5 py-1.5 rounded-xl border border-slate-800">
+            <div className="flex items-center space-x-2 bg-slate-900/80 pl-2 pr-1.5 py-1 rounded-xl border border-white/[0.08]">
               {user.picture ? (
                 <img
                   src={user.picture}
                   alt="Avatar"
-                  className="w-6 h-6 rounded-full border border-indigo-500/30"
+                  className="w-6 h-6 rounded-full border border-emerald-500/30"
                   referrerPolicy="no-referrer"
                 />
               ) : (
-                <div className="w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center text-xs font-bold text-white">
-                  {user.name ? user.name[0] : "U"}
+                <div className="w-6 h-6 rounded-full bg-emerald-600 flex items-center justify-center text-xs font-bold text-white">
+                  {user.name ? user.name[0] : "T"}
                 </div>
               )}
-              <div className="flex flex-col text-left">
-                <span className="text-xs font-semibold text-slate-200 leading-none">{user.name}</span>
-                <span className="text-[9px] text-slate-400 mt-0.5 max-w-[120px] truncate">{user.email}</span>
-              </div>
               <button
                 onClick={handleLogout}
-                className="px-2 py-1 hover:bg-rose-950/30 hover:text-rose-400 text-[10px] font-medium text-slate-400 rounded-lg transition cursor-pointer"
+                className="px-1.5 py-0.5 hover:bg-rose-950/40 hover:text-rose-400 text-[10px] font-medium text-slate-400 rounded-lg transition"
+                title="Sign out"
               >
                 Sign Out
               </button>
@@ -405,63 +463,67 @@ export default function App() {
         </div>
       </header>
 
-      {/* Main Workspace Layout */}
+      {/* Main Workspace Arena */}
       <div className="flex-1 flex overflow-hidden relative z-10">
         
         {mobileMenuOpen && (
           <div 
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 md:hidden"
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-30 md:hidden"
             onClick={() => setMobileMenuOpen(false)}
           />
         )}
 
         {/* Sessions Sidebar */}
-        <aside className={`fixed inset-y-0 left-0 w-64 bg-[#090e18]/95 border-r border-slate-850 flex flex-col z-40 transition-transform duration-300 transform ${
+        <aside className={`fixed inset-y-0 left-0 w-64 bg-[#080d14]/98 border-r border-white/[0.08] flex flex-col z-40 transition-transform duration-300 transform ${
           mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         } md:relative md:translate-x-0 md:flex flex-shrink-0`}>
-          <div className="p-4 border-b border-slate-850 flex items-center justify-between gap-2">
+          <div className="p-3.5 border-b border-white/[0.08] flex items-center justify-between gap-2">
             <button
               onClick={handleNewChat}
-              className="flex-1 py-2.5 px-4 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 hover:text-indigo-300 border border-indigo-500/30 rounded-xl font-bold text-xs flex items-center justify-center space-x-2 transition cursor-pointer"
+              className="flex-1 py-2 px-3 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 hover:text-emerald-300 border border-emerald-500/30 rounded-xl font-bold text-xs flex items-center justify-center space-x-2 transition cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>New Conversation</span>
             </button>
             <button
               onClick={() => setMobileMenuOpen(false)}
-              className="md:hidden p-2 text-slate-400 hover:text-white bg-slate-900 rounded-xl border border-slate-800"
+              className="md:hidden p-1.5 text-slate-400 hover:text-white bg-slate-900 rounded-lg border border-white/10"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-3 space-y-1">
+          {/* Conversation List (Newest on Top) */}
+          <div className="flex-1 overflow-y-auto p-2.5 space-y-1">
             {sessions.length === 0 ? (
               <div className="text-center py-8 text-xs text-slate-500 italic">
                 No recent conversations
               </div>
             ) : (
-              sessions.map((sess) => {
+              sessions.map((sess, idx) => {
                 const isActive = sess.session_id === sessionId;
                 return (
                   <div
-                    key={sess.session_id}
+                    key={sess.session_id || idx}
                     onClick={() => handleSelectSession(sess.session_id)}
-                    className={`group flex items-center justify-between p-3 rounded-xl cursor-pointer border transition duration-200 ${
+                    className={`group relative flex items-center justify-between p-2.5 rounded-xl cursor-pointer border transition-all duration-200 ${
                       isActive
-                        ? "bg-indigo-600/15 border-indigo-500/30 text-white"
-                        : "bg-transparent border-transparent text-slate-400 hover:bg-slate-900 hover:text-slate-200"
+                        ? "bg-emerald-500/15 border-emerald-500/40 text-white shadow-sm"
+                        : "bg-transparent border-transparent text-slate-400 hover:bg-slate-900 hover:text-slate-200 hover:border-white/5"
                     }`}
                   >
-                    <div className="flex items-center space-x-2.5 overflow-hidden flex-1">
-                      <MessageSquare className={`w-4 h-4 flex-shrink-0 ${isActive ? "text-indigo-400" : "text-slate-500"}`} />
+                    <div className="flex items-center space-x-2.5 overflow-hidden flex-1 pr-2">
+                      <MessageSquare className={`w-3.5 h-3.5 flex-shrink-0 ${isActive ? "text-emerald-400" : "text-slate-500"}`} />
                       <span className="text-xs truncate font-medium text-left">
                         {sess.summary || "Conversation"}
                       </span>
                     </div>
+
+                    {/* Delete Conversation Trash Icon */}
                     <button
                       onClick={(e) => handleDeleteSession(e, sess.session_id)}
-                      className="opacity-0 group-hover:opacity-100 p-1 hover:bg-rose-950/30 rounded text-slate-500 hover:text-rose-400 transition"
+                      className="opacity-0 group-hover:opacity-100 p-1 hover:bg-rose-500/20 text-slate-500 hover:text-rose-400 rounded-lg transition-all"
+                      title="Delete this conversation"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -474,20 +536,20 @@ export default function App() {
 
         {mobileLibraryOpen && (
           <div 
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 lg:hidden"
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-30 lg:hidden"
             onClick={() => setMobileLibraryOpen(false)}
           />
         )}
 
-        {/* Documents Library Sidebar */}
-        <aside className={`fixed inset-y-0 right-0 w-80 max-w-[calc(100vw-3rem)] bg-[#070b13]/97 lg:bg-[#070b13]/95 border-l lg:border-l-0 lg:border-r border-slate-850 flex flex-col z-40 p-5 space-y-6 transition-transform duration-300 transform ${
+        {/* Documents Manager Sidebar */}
+        <aside className={`fixed inset-y-0 right-0 w-80 max-w-[calc(100vw-3rem)] bg-[#080d14]/98 lg:bg-[#080d14]/95 border-l lg:border-l-0 lg:border-r border-white/[0.08] flex flex-col z-40 p-4 space-y-5 transition-transform duration-300 transform ${
           mobileLibraryOpen ? "translate-x-0" : "translate-x-full"
         } lg:relative lg:translate-x-0 lg:flex flex-shrink-0 overflow-hidden`}>
-          <div className="flex items-center justify-between pb-1 border-b border-slate-800 lg:border-none lg:pb-0 flex-shrink-0">
+          <div className="flex items-center justify-between pb-1 border-b border-white/[0.08] lg:border-none lg:pb-0 flex-shrink-0">
             <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Document Manager</h2>
             <button
               onClick={() => setMobileLibraryOpen(false)}
-              className="lg:hidden p-1.5 text-slate-400 hover:text-white bg-slate-900 rounded-lg border border-slate-800"
+              className="lg:hidden p-1.5 text-slate-400 hover:text-white bg-slate-900 rounded-lg border border-white/10"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -502,9 +564,9 @@ export default function App() {
           </div>
 
           <div className="flex-1 flex flex-col min-h-0">
-            <div className="flex items-center justify-between mb-3 flex-shrink-0">
+            <div className="flex items-center justify-between mb-2.5 flex-shrink-0">
               <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Indexed Documents</h2>
-              <span className="text-[10px] px-2.5 py-0.5 bg-indigo-950/40 text-indigo-400 rounded-full border border-indigo-500/20 font-semibold">
+              <span className="text-[10px] px-2 py-0.5 bg-emerald-500/10 text-emerald-400 rounded-full border border-emerald-500/30 font-semibold">
                 {selectedDocIds.length} / {documents.length} Selected
               </span>
             </div>
@@ -524,7 +586,7 @@ export default function App() {
         <main className="flex-1 flex overflow-hidden relative">
           <div className="flex-1 flex flex-col h-full relative overflow-hidden">
             {error && (
-              <div className="m-4 p-3 bg-rose-950/20 border border-rose-500/30 rounded-xl flex items-center space-x-2 text-rose-400 text-xs">
+              <div className="m-4 p-3 bg-rose-950/30 border border-rose-500/30 rounded-xl flex items-center space-x-2 text-rose-400 text-xs animate-fadeIn">
                 <AlertCircle className="w-4 h-4 flex-shrink-0" />
                 <span>{error}</span>
               </div>
@@ -532,6 +594,7 @@ export default function App() {
             <Chat
               messages={messages}
               onSendMessage={handleSendMessage}
+              onDeleteCurrentSession={() => handleDeleteSession(null, sessionId)}
               isStreaming={isStreaming}
               currentStreamedAnswer={currentStreamedAnswer}
               selectedDocIds={selectedDocIds}
@@ -553,18 +616,18 @@ export default function App() {
             />
           </div>
 
-          {/* Active Citation Panel */}
+          {/* Active Verified Citation Sidebar */}
           {activeCitation && (
-            <div className="fixed inset-y-0 right-0 md:relative w-80 max-w-[calc(100vw-3rem)] border-l border-slate-800 bg-[#090e18]/95 p-5 flex flex-col justify-between shadow-2xl z-40 flex-shrink-0">
+            <div className="fixed inset-y-0 right-0 md:relative w-80 max-w-[calc(100vw-3rem)] border-l border-white/[0.08] bg-[#080d14]/98 p-5 flex flex-col justify-between shadow-2xl z-40 flex-shrink-0">
               <div className="space-y-4">
-                <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
                   <div className="flex items-center space-x-2">
                     <FileText className="w-4 h-4 text-emerald-400" />
-                    <span className="text-xs font-semibold text-slate-200">Verified Citation</span>
+                    <span className="text-xs font-bold text-white uppercase tracking-wider">Verified Source Passage</span>
                   </div>
                   <button
                     onClick={() => setActiveCitation(null)}
-                    className="p-1 hover:bg-slate-800 rounded text-slate-400"
+                    className="p-1 hover:bg-slate-800 rounded-lg text-slate-400"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -572,27 +635,28 @@ export default function App() {
 
                 <div className="text-left space-y-2">
                   <p className="text-xs font-medium text-slate-400 truncate">
-                    Document: <span className="text-slate-200">{activeCitation.doc_name}</span>
+                    Document: <span className="text-slate-200 font-semibold">{activeCitation.doc_name}</span>
                   </p>
                   <p className="text-xs font-medium text-slate-400">
-                    Location: <span className="text-emerald-400 px-1.5 py-0.5 bg-emerald-950/40 rounded-md border border-emerald-500/20">Page {activeCitation.page}</span>
+                    Location: <span className="text-emerald-400 px-2 py-0.5 bg-emerald-500/10 rounded-md border border-emerald-500/30 font-mono text-[11px]">Page {activeCitation.page}</span>
                   </p>
                 </div>
 
-                <div className="p-3.5 bg-slate-950/60 border border-slate-800 rounded-xl text-xs leading-relaxed text-slate-300 text-left max-h-[350px] overflow-y-auto italic">
+                <div className="p-4 bg-slate-950/80 border border-white/[0.08] rounded-xl text-xs leading-relaxed text-slate-200 text-left max-h-[350px] overflow-y-auto italic font-sans border-l-2 border-l-emerald-500">
                   "{activeCitation.text}"
                 </div>
               </div>
 
-              <div className="text-[10px] text-slate-500 text-left mt-4 border-t border-slate-800 pt-3">
-                Citation is mathematically grounded to this exact paragraph index.
+              <div className="text-[10px] text-slate-500 text-left mt-4 border-t border-white/[0.08] pt-3 flex items-center space-x-1.5">
+                <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Mathematically citation-grounded to source paragraph.</span>
               </div>
             </div>
           )}
         </main>
       </div>
 
-      {/* Analytics Dashboard Modal */}
+      {/* Analytics Modal */}
       {showAnalytics && (
         <AnalyticsDashboard
           analytics={analyticsData}
