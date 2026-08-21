@@ -44,7 +44,7 @@ export default function Login({ onLoginSuccess }) {
   });
 
   return (
-    <div className="min-h-[100dvh] w-full bg-[#06090e] text-slate-100 flex items-center justify-center p-4 sm:p-6 md:p-10 relative font-sans overflow-y-auto bg-radial-glow py-12 sm:py-16">
+    <div className="min-h-[100dvh] w-full bg-[#06090e] text-slate-100 flex items-center justify-center p-3 sm:p-6 md:p-10 relative font-sans overflow-y-auto bg-radial-glow py-6 sm:py-12">
       {/* Ambient background glows */}
       <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-emerald-500/10 rounded-full blur-[150px] pointer-events-none pulse-glow-emerald" />
       <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-emerald-950/25 rounded-full blur-[130px] pointer-events-none" />
@@ -53,40 +53,40 @@ export default function Login({ onLoginSuccess }) {
       <div className="absolute inset-0 bg-grid-pattern opacity-40 pointer-events-none" />
 
       {/* Main 2-Column Container */}
-      <div className="relative z-10 w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center my-auto">
+      <div className="relative z-10 w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-10 items-center my-auto">
         {/* Left Hero Column */}
-        <div className="lg:col-span-7 space-y-6 text-left pt-4 sm:pt-0">
+        <div className="lg:col-span-7 space-y-3 sm:space-y-5 text-left">
           {/* Logo Badge */}
-          <div className="inline-flex items-center space-x-2.5 px-3.5 py-2 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 glow-emerald-sm">
-            <Mic className="w-4 h-4 fill-emerald-400/20" />
-            <span className="text-sm font-bold text-white tracking-tight">DocuMind <span className="text-emerald-400 font-normal italic font-serif-accent text-base">AI 2.0</span></span>
+          <div className="inline-flex items-center space-x-2 px-3 py-1.5 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 glow-emerald-sm">
+            <Mic className="w-3.5 h-3.5 fill-emerald-400/20" />
+            <span className="text-xs sm:text-sm font-bold text-white tracking-tight">DocuMind <span className="text-emerald-400 font-normal italic font-serif-accent text-sm sm:text-base">AI 2.0</span></span>
           </div>
 
           {/* Headline with Serif Italic Accent */}
-          <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-white leading-[1.1]">
+          <h1 className="text-2xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-white leading-[1.15]">
             Research across your <br />
-            <span className="text-emerald-400 font-serif-accent italic font-normal text-5xl sm:text-7xl">
+            <span className="text-emerald-400 font-serif-accent italic font-normal text-3xl sm:text-6xl md:text-7xl">
               enterprise
             </span>{" "}
             knowledge base.
           </h1>
 
           {/* Feature Bullet Points with Emerald Checks */}
-          <div className="space-y-3 pt-2 text-sm text-slate-300">
-            <div className="flex items-center space-x-3">
-              <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />
+          <div className="space-y-2 sm:space-y-3 pt-1 text-xs sm:text-sm text-slate-300">
+            <div className="flex items-center space-x-2.5">
+              <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
               <span>Real Voice Speech & Studio Dictation</span>
             </div>
-            <div className="flex items-center space-x-3">
-              <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />
+            <div className="flex items-center space-x-2.5">
+              <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
               <span>Zero Hallucination Citation Verification</span>
             </div>
-            <div className="flex items-center space-x-3">
-              <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />
+            <div className="flex items-center space-x-2.5">
+              <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
               <span>Small-to-Big Hierarchical Retrieval</span>
             </div>
-            <div className="flex items-center space-x-3">
-              <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />
+            <div className="flex items-center space-x-2.5">
+              <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
               <span>Mathematically citation-grounded answers</span>
             </div>
           </div>
@@ -94,19 +94,19 @@ export default function Login({ onLoginSuccess }) {
 
         {/* Right Sign-in Card Column */}
         <div className="lg:col-span-5">
-          <div className="bg-[#0b1019]/90 bg-grid-pattern border border-white/10 rounded-3xl p-8 sm:p-10 shadow-2xl relative overflow-hidden backdrop-blur-xl glow-emerald-card">
+          <div className="bg-[#0b1019]/90 bg-grid-pattern border border-white/10 rounded-3xl p-5 sm:p-8 shadow-2xl relative overflow-hidden backdrop-blur-xl glow-emerald-card">
             {/* Glow ambient */}
             <div className="absolute top-0 right-0 w-48 h-24 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
 
-            <h2 className="text-2xl font-bold text-white mb-2">
+            <h2 className="text-xl sm:text-2xl font-bold text-white mb-1.5">
               Sign in to start
             </h2>
-            <p className="text-xs text-slate-400 leading-relaxed mb-8">
+            <p className="text-xs text-slate-400 leading-relaxed mb-5 sm:mb-7">
               Your research documents, verified citations, and conversation history are automatically saved to your workspace.
             </p>
 
             {error && (
-              <div className="mb-6 p-3 bg-rose-950/40 border border-rose-500/30 rounded-xl text-rose-400 text-xs text-left">
+              <div className="mb-4 p-3 bg-rose-950/40 border border-rose-500/30 rounded-xl text-rose-400 text-xs text-left">
                 {error}
               </div>
             )}
@@ -115,10 +115,10 @@ export default function Login({ onLoginSuccess }) {
             <button
               onClick={() => login()}
               disabled={isLoading}
-              className="w-full p-3.5 bg-slate-900 hover:bg-slate-850 text-white rounded-2xl border border-white/15 hover:border-emerald-500/50 flex items-center justify-between transition-all duration-200 shadow-lg group cursor-pointer active:scale-98"
+              className="w-full p-3 sm:p-3.5 bg-slate-900 hover:bg-slate-850 text-white rounded-2xl border border-white/15 hover:border-emerald-500/50 flex items-center justify-between transition-all duration-200 shadow-lg group cursor-pointer active:scale-98"
             >
               <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center text-xs font-bold text-white">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-emerald-600 flex items-center justify-center text-xs font-bold text-white">
                   G
                 </div>
                 <div className="text-left">
@@ -132,8 +132,8 @@ export default function Login({ onLoginSuccess }) {
               </div>
 
               {/* Google Brand SVG */}
-              <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center shadow-sm">
-                <svg className="w-4 h-4" viewBox="0 0 24 24">
+              <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-white flex items-center justify-center shadow-sm">
+                <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" viewBox="0 0 24 24">
                   <path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.7 14.8 1 12 1 7.7 1 4 3.5 2.2 7.1l3.7 2.8C6.8 6.9 9.2 5 12 5z" />
                   <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.8z" />
                   <path fill="#FBBC05" d="M5.9 14.1c-.2-.7-.4-1.4-.4-2.1s.2-1.4.4-2.1L2.2 7.1C1.4 8.6 1 10.2 1 12s.4 3.4 1.2 4.9l3.7-2.8z" />
@@ -142,7 +142,7 @@ export default function Login({ onLoginSuccess }) {
               </div>
             </button>
 
-            <p className="text-[10px] text-slate-500 text-center mt-6 leading-relaxed">
+            <p className="text-[10px] text-slate-500 text-center mt-4 sm:mt-6 leading-relaxed">
               By continuing, you agree to access citation-grounded intelligence powered by DocuMind AI.
             </p>
           </div>

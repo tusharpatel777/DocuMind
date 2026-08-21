@@ -535,6 +535,35 @@ export default function App() {
               })
             )}
           </div>
+
+          {/* User Profile & Sign Out footer in sidebar drawer */}
+          {user && (
+            <div className="p-3 border-t border-white/[0.08] bg-[#070b12] flex items-center justify-between">
+              <div className="flex items-center space-x-2 truncate flex-1 mr-2">
+                {user.picture ? (
+                  <img
+                    src={user.picture}
+                    alt="Avatar"
+                    className="w-6 h-6 rounded-full border border-emerald-500/30 shrink-0"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <div className="w-6 h-6 rounded-full bg-emerald-600 flex items-center justify-center text-xs font-bold text-white shrink-0">
+                    {user.name ? user.name[0] : "T"}
+                  </div>
+                )}
+                <span className="text-xs font-semibold text-slate-300 truncate">
+                  {user.name || user.email}
+                </span>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="px-2 py-1 bg-rose-950/40 hover:bg-rose-900/60 text-rose-400 border border-rose-500/30 rounded-lg text-[11px] font-semibold transition shrink-0"
+              >
+                Sign Out
+              </button>
+            </div>
+          )}
         </aside>
 
         {mobileLibraryOpen && (
