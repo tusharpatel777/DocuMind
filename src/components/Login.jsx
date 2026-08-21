@@ -44,7 +44,7 @@ export default function Login({ onLoginSuccess }) {
   });
 
   return (
-    <div className="h-[100dvh] w-screen bg-[#06090e] text-slate-100 flex items-center justify-center p-6 relative font-sans overflow-hidden bg-radial-glow">
+    <div className="min-h-[100dvh] w-full bg-[#06090e] text-slate-100 flex items-center justify-center p-4 sm:p-6 md:p-10 relative font-sans overflow-y-auto bg-radial-glow py-12 sm:py-16">
       {/* Ambient background glows */}
       <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-emerald-500/10 rounded-full blur-[150px] pointer-events-none pulse-glow-emerald" />
       <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-emerald-950/25 rounded-full blur-[130px] pointer-events-none" />
@@ -53,11 +53,11 @@ export default function Login({ onLoginSuccess }) {
       <div className="absolute inset-0 bg-grid-pattern opacity-40 pointer-events-none" />
 
       {/* Main 2-Column Container */}
-      <div className="relative z-10 w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+      <div className="relative z-10 w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center my-auto">
         {/* Left Hero Column */}
-        <div className="lg:col-span-7 space-y-6 text-left">
+        <div className="lg:col-span-7 space-y-6 text-left pt-4 sm:pt-0">
           {/* Logo Badge */}
-          <div className="inline-flex items-center space-x-2.5 px-3 py-1.5 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 glow-emerald-sm">
+          <div className="inline-flex items-center space-x-2.5 px-3.5 py-2 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 glow-emerald-sm">
             <Mic className="w-4 h-4 fill-emerald-400/20" />
             <span className="text-sm font-bold text-white tracking-tight">DocuMind <span className="text-emerald-400 font-normal italic font-serif-accent text-base">AI 2.0</span></span>
           </div>
